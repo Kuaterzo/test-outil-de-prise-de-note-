@@ -1,0 +1,8 @@
+# Dépendances de l'assistant de synthèse de réunions.
+# Installation : pip install -r requirements.txt
+
+numpy>=1.23
+soundcard>=0.4.3       # capture de la sortie audio (loopback WASAPI sous Windows)
+faster-whisper>=1.0.0  # transcription locale (Whisper)
+requests>=2.28         # backend de synthèse local (Ollama)
+anthropic>=0.40        # backend de synthèse via l'API Claude (optionnel à l'usage)

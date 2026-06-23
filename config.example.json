@@ -1,0 +1,18 @@
+{
+  "backend": "ollama",
+  "whisper_model": "small",
+  "whisper_device": "auto",
+  "whisper_compute_type": "auto",
+  "language": "fr",
+  "ollama_host": "http://localhost:11434",
+  "ollama_model": "llama3.1",
+  "claude_model": "claude-opus-4-8",
+  "claude_effort": "medium",
+  "output_device": null,
+  "include_microphone": false,
+  "mic_device": null,
+  "samplerate": 48000,
+  "output_dir": "~/Documents/Synthèses réunions",
+  "save_transcript": true,
+  "keep_audio": true
+}

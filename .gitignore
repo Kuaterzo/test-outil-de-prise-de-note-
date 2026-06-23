@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+
+# Environnements virtuels
+.venv/
+venv/
+env/
+
+# Configuration locale et sorties
+config.json
+/output/
+*.wav
+*.mp3
+*.m4a
+
+# Modèles Whisper téléchargés localement
+models/
+*.bin
+
+# Divers
+.DS_Store
+.idea/
+.vscode/
