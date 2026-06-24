@@ -17,5 +17,7 @@
   "samplerate": 48000,
   "output_dir": "~/Documents/Synthèses réunions",
   "save_transcript": true,
-  "keep_audio": true
+  "keep_audio": true,
+  "export_docx": false,
+  "export_pdf": false
 }

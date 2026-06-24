@@ -59,6 +59,10 @@ def cmd_record(args) -> int:
         config.output_device = args.device
     if args.backend:
         config.backend = args.backend
+    if args.docx:
+        config.export_docx = True
+    if args.pdf:
+        config.export_pdf = True
 
     recorder = Recorder(
         output_device_id=config.output_device,
@@ -90,6 +94,10 @@ def cmd_process(args) -> int:
     config = Config.load()
     if args.backend:
         config.backend = args.backend
+    if args.docx:
+        config.export_docx = True
+    if args.pdf:
+        config.export_pdf = True
     pipeline = MeetingPipeline(config)
     result = pipeline.process_audio_file(
         Path(args.file), _context_from_args(args), _progress
@@ -110,6 +118,10 @@ def _print_result(result) -> None:
     print(result.synthesis)
     print("=" * 70)
     print(f"\nSynthèse enregistrée : {result.synthesis_path}", file=sys.stderr)
+    if result.docx_path:
+        print(f"Document Word        : {result.docx_path}", file=sys.stderr)
+    if result.pdf_path:
+        print(f"Document PDF         : {result.pdf_path}", file=sys.stderr)
     if result.transcript_path:
         print(f"Transcription        : {result.transcript_path}", file=sys.stderr)
     if result.audio_path:
@@ -134,6 +146,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_rec.add_argument("--title", default="Réunion", help="Titre de la réunion.")
     p_rec.add_argument("--participants", default="", help="Participants (séparés par des virgules).")
     p_rec.add_argument("--backend", choices=["ollama", "claude"], help="Forcer le moteur de synthèse.")
+    p_rec.add_argument("--docx", action="store_true", help="Exporter aussi en Word (.docx).")
+    p_rec.add_argument("--pdf", action="store_true", help="Exporter aussi en PDF.")
     p_rec.set_defaults(func=cmd_record)
 
     p_proc = sub.add_parser("process", help="Synthétiser un fichier audio existant.")
@@ -141,6 +155,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_proc.add_argument("--title", default="Réunion", help="Titre de la réunion.")
     p_proc.add_argument("--participants", default="", help="Participants (séparés par des virgules).")
     p_proc.add_argument("--backend", choices=["ollama", "claude"], help="Forcer le moteur de synthèse.")
+    p_proc.add_argument("--docx", action="store_true", help="Exporter aussi en Word (.docx).")
+    p_proc.add_argument("--pdf", action="store_true", help="Exporter aussi en PDF.")
     p_proc.set_defaults(func=cmd_process)
 
     p_gui = sub.add_parser("gui", help="Lancer l'interface graphique.")

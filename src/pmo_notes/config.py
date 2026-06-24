@@ -63,6 +63,8 @@ class Config:
     output_dir: str = field(default_factory=_default_output_dir)
     save_transcript: bool = True          # enregistrer aussi la transcription brute
     keep_audio: bool = True               # conserver l'enregistrement audio (.wav)
+    export_docx: bool = False             # générer aussi une synthèse Word (.docx)
+    export_pdf: bool = False              # générer aussi une synthèse PDF
 
     # ------------------------------------------------------------------ I/O
     @staticmethod

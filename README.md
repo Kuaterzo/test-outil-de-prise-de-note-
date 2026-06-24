@@ -221,6 +221,9 @@ pmo-notes record --title "Comité de pilotage" --participants "Alice, Bob"
 # Synthétiser un fichier audio existant
 pmo-notes process reunion.m4a --title "Atelier cadrage"
 
+# Exporter aussi la synthèse en Word et PDF
+pmo-notes process reunion.wav --docx --pdf
+
 # Forcer un moteur ponctuellement
 pmo-notes process reunion.wav --backend claude
 ```
@@ -253,6 +256,7 @@ Principaux champs :
 | `diarization_model` / `hf_token` | modèle pyannote / jeton Hugging Face | ex. `pyannote/speaker-diarization-3.1` |
 | `output_dir` | dossier de sortie | chemin |
 | `save_transcript` / `keep_audio` | conserver `.txt` / `.wav` | `true` / `false` |
+| `export_docx` / `export_pdf` | générer aussi `.docx` / `.pdf` | `true` / `false` |
 
 ---
 
@@ -270,6 +274,14 @@ trois fichiers partageant le même préfixe horodaté sont créés :
 La synthèse est un fichier **Markdown** respectant la structure :
 `## Introduction`, `## Résumé des échanges`, `## Actions à venir`,
 `## Conclusion`.
+
+Vous pouvez en plus générer la synthèse au format **Word (`.docx`)** et/ou
+**PDF** : cochez « Word (.docx) » / « PDF (.pdf) » dans l'interface (ou activez
+`export_docx` / `export_pdf` dans la configuration ; en ligne de commande,
+ajoutez `--docx` / `--pdf`). Ces documents reprennent la même structure (titres
+de sections, puces, responsables en gras). *(Aucun logiciel bureautique n'est
+requis : la génération utilise `python-docx` et `reportlab`, installés avec les
+dépendances.)*
 
 ---
 
@@ -343,7 +355,7 @@ src/pmo_notes/
 │   └── claude.py       Backend API Claude (Anthropic)
 ├── prompts.py          Invites de synthèse (structure imposée)
 ├── pipeline.py         Orchestration enregistrement → synthèse → export
-├── export.py           Écriture des fichiers .md / .txt
+├── export.py           Écriture des synthèses (.md, .docx, .pdf) + transcription
 ├── config.py           Configuration (JSON)
 ├── gui.py              Interface graphique (Tkinter)
 └── cli.py              Interface en ligne de commande

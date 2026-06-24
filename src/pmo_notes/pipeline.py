@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional
 
-from .export import build_basename, save_synthesis
+from .export import build_basename, render_docx, render_pdf, save_synthesis
 from .prompts import MeetingContext
 from .summarization import get_summarizer
 
@@ -42,6 +42,19 @@ class MeetingResult:
     synthesis_path: Path
     transcript_path: Optional[Path] = None
     audio_path: Optional[Path] = None
+    docx_path: Optional[Path] = None
+    pdf_path: Optional[Path] = None
+
+    def all_paths(self) -> list[Path]:
+        """Tous les fichiers produits, dans l'ordre de lecture le plus utile."""
+        candidates = [
+            self.synthesis_path,
+            self.docx_path,
+            self.pdf_path,
+            self.transcript_path,
+            self.audio_path,
+        ]
+        return [p for p in candidates if p is not None]
 
 
 class MeetingPipeline:
@@ -119,13 +132,27 @@ class MeetingPipeline:
         when = when or datetime.now()
         if progress:
             progress("Enregistrement de la synthèse…")
+        out_dir = self.config.resolved_output_dir()
         paths = save_synthesis(
             synthesis,
-            self.config.resolved_output_dir(),
+            out_dir,
             context.title,
             transcript=transcript if self.config.save_transcript else None,
             when=when,
         )
+
+        basename = build_basename(context.title, when)
+        docx_path = pdf_path = None
+        if self.config.export_docx:
+            docx_path = self._export_document(
+                render_docx, synthesis, out_dir / f"{basename}.docx", context.title,
+                "Word (.docx)", progress,
+            )
+        if self.config.export_pdf:
+            pdf_path = self._export_document(
+                render_pdf, synthesis, out_dir / f"{basename}.pdf", context.title,
+                "PDF", progress,
+            )
 
         return MeetingResult(
             transcript=transcript,
@@ -133,7 +160,21 @@ class MeetingPipeline:
             synthesis_path=paths["synthesis"],
             transcript_path=paths.get("transcript"),
             audio_path=_audio_path,
+            docx_path=docx_path,
+            pdf_path=pdf_path,
         )
+
+    @staticmethod
+    def _export_document(renderer, synthesis, path, title, label, progress):
+        """Génère un document (docx/pdf) ; n'interrompt pas en cas d'échec."""
+        try:
+            if progress:
+                progress(f"Génération du document {label}…")
+            return renderer(synthesis, path, title)
+        except Exception as exc:  # dépendance manquante, erreur de rendu…
+            if progress:
+                progress(f"Export {label} ignoré ({exc}).")
+            return None
 
     # ----------------------------------------------------------------- interne
     def _build_transcript(self, segments, audio_path: Path, progress: ProgressCallback) -> str:

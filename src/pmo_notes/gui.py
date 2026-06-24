@@ -162,9 +162,22 @@ class App:
             variable=self.diar_var,
         ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
+        # --- Formats d'export ---
+        export = ttk.LabelFrame(main, text="Formats d'export", padding=8)
+        export.grid(row=4, column=0, sticky="ew", **pad)
+        ttk.Label(export, text="Markdown (.md) toujours généré.", foreground="#666").pack(
+            side="left"
+        )
+        self.docx_var = tk.BooleanVar(value=False)
+        self.pdf_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(export, text="Word (.docx)", variable=self.docx_var).pack(
+            side="left", padx=12
+        )
+        ttk.Checkbutton(export, text="PDF (.pdf)", variable=self.pdf_var).pack(side="left")
+
         # --- Contrôles ---
         controls = ttk.Frame(main)
-        controls.grid(row=4, column=0, sticky="ew", **pad)
+        controls.grid(row=5, column=0, sticky="ew", **pad)
         self.start_btn = ttk.Button(controls, text="● Démarrer", command=self.start_recording)
         self.start_btn.pack(side="left")
         self.stop_btn = ttk.Button(
@@ -185,12 +198,12 @@ class App:
         # --- Statut ---
         self.status_var = tk.StringVar(value="Prêt.")
         self.status_label = ttk.Label(main, textvariable=self.status_var, foreground="#0a6")
-        self.status_label.grid(row=5, column=0, sticky="w", **pad)
+        self.status_label.grid(row=6, column=0, sticky="w", **pad)
 
         # --- Synthèse ---
         out = ttk.LabelFrame(main, text="Synthèse", padding=8)
-        out.grid(row=6, column=0, sticky="nsew", **pad)
-        main.rowconfigure(6, weight=1)
+        out.grid(row=7, column=0, sticky="nsew", **pad)
+        main.rowconfigure(7, weight=1)
         out.columnconfigure(0, weight=1)
         out.rowconfigure(0, weight=1)
         self.output = ScrolledText(out, wrap="word", height=14, font=("TkDefaultFont", 10))
@@ -218,6 +231,8 @@ class App:
         self.claude_effort_var.set(c.claude_effort)
         self.whisper_model_var.set(c.whisper_model)
         self.diar_var.set(c.diarization)
+        self.docx_var.set(c.export_docx)
+        self.pdf_var.set(c.export_pdf)
         self._on_backend_change()
 
     def _collect_config(self) -> None:
@@ -230,6 +245,8 @@ class App:
         c.claude_effort = self.claude_effort_var.get() or c.claude_effort
         c.whisper_model = self.whisper_model_var.get() or c.whisper_model
         c.diarization = bool(self.diar_var.get())
+        c.export_docx = bool(self.docx_var.get())
+        c.export_pdf = bool(self.pdf_var.get())
         device = self._selected_device()
         c.output_device = device.id if device else c.output_device
         try:
@@ -405,7 +422,8 @@ class App:
     def _on_result(self, result) -> None:
         self.output.delete("1.0", "end")
         self.output.insert("1.0", result.synthesis)
-        self.saved_var.set(f"Enregistré : {result.synthesis_path}")
+        files = ", ".join(p.name for p in result.all_paths())
+        self.saved_var.set(f"Fichiers enregistrés : {files}")
         self.open_btn["state"] = "normal"
         self.set_status("Synthèse terminée. ✔")
         self._busy = False
