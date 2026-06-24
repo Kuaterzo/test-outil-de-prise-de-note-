@@ -103,12 +103,13 @@ class MeetingPipeline:
     ) -> MeetingResult:
         """Transcrit puis synthétise un fichier audio, et exporte le résultat."""
         transcriber = self._get_transcriber()
-        transcript = transcriber.transcribe(Path(audio_path), progress)
-        if not transcript.strip():
+        segments = transcriber.transcribe_segments(Path(audio_path), progress)
+        if not segments:
             raise PipelineError(
                 "La transcription est vide : aucune parole n'a été détectée dans "
                 "l'enregistrement."
             )
+        transcript = self._build_transcript(segments, Path(audio_path), progress)
 
         summarizer = get_summarizer(self.config)
         if progress:
@@ -135,6 +136,35 @@ class MeetingPipeline:
         )
 
     # ----------------------------------------------------------------- interne
+    def _build_transcript(self, segments, audio_path: Path, progress: ProgressCallback) -> str:
+        """Construit la transcription, avec ou sans étiquettes de locuteurs.
+
+        Si la diarisation est activée mais échoue (dépendance ou jeton manquant,
+        erreur du modèle), on retombe sur une transcription simple en signalant
+        la raison plutôt que d'interrompre tout le traitement.
+        """
+        from .transcription import join_segments
+
+        if not self.config.diarization:
+            return join_segments(segments)
+
+        try:
+            from .diarization import diarized_transcript
+
+            if progress:
+                progress("Diarisation (identification des locuteurs)…")
+            return diarized_transcript(
+                segments,
+                audio_path,
+                model=self.config.diarization_model,
+                hf_token=self.config.hf_token,
+                progress=progress,
+            )
+        except Exception as exc:  # repli gracieux
+            if progress:
+                progress(f"Diarisation ignorée ({exc}). Transcription simple utilisée.")
+            return join_segments(segments)
+
     def _get_transcriber(self) -> "Transcriber":
         """Construit (et met en cache) le transcripteur Whisper."""
         from .transcription import Transcriber

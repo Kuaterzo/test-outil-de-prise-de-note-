@@ -4,14 +4,30 @@
 ou GPU et gère très bien le français. Le décodage/rééchantillonnage du fichier
 audio est délégué à la bibliothèque (via PyAV), d'où l'usage d'un chemin de
 fichier WAV plutôt que d'un tableau brut.
+
+La transcription est exposée sous deux formes :
+
+* :meth:`Transcriber.transcribe_segments` — segments horodatés (start, end,
+  text), nécessaires à l'alignement avec les locuteurs (diarisation) ;
+* :meth:`Transcriber.transcribe` — texte complet, dérivé des segments.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
 ProgressCallback = Optional[Callable[[str], None]]
+
+
+@dataclass
+class TranscriptSegment:
+    """Portion de transcription horodatée."""
+
+    start: float
+    end: float
+    text: str
 
 
 class TranscriptionError(RuntimeError):
@@ -59,8 +75,10 @@ class Transcriber:
                 f"Impossible de charger le modèle Whisper « {self.model_size} » : {exc}"
             ) from exc
 
-    def transcribe(self, audio_path: Path, progress: ProgressCallback = None) -> str:
-        """Transcrit un fichier audio et renvoie le texte complet."""
+    def transcribe_segments(
+        self, audio_path: Path, progress: ProgressCallback = None
+    ) -> list[TranscriptSegment]:
+        """Transcrit un fichier audio et renvoie les segments horodatés."""
         audio_path = Path(audio_path)
         if not audio_path.exists():
             raise TranscriptionError(f"Fichier audio introuvable : {audio_path}")
@@ -80,16 +98,25 @@ class Transcriber:
             raise TranscriptionError(f"Échec de la transcription : {exc}") from exc
 
         total = getattr(info, "duration", 0.0) or 0.0
-        parts: list[str] = []
+        result: list[TranscriptSegment] = []
         for segment in segments:  # itérateur paresseux : le travail se fait ici
             text = segment.text.strip()
             if text:
-                parts.append(text)
+                result.append(TranscriptSegment(segment.start, segment.end, text))
             if progress and total:
                 pct = min(100, int(segment.end / total * 100))
                 progress(f"Transcription… {pct} %")
+        return result
 
-        return " ".join(parts).strip()
+    def transcribe(self, audio_path: Path, progress: ProgressCallback = None) -> str:
+        """Transcrit un fichier audio et renvoie le texte complet."""
+        segments = self.transcribe_segments(audio_path, progress)
+        return join_segments(segments)
 
 
-__all__ = ["Transcriber", "TranscriptionError"]
+def join_segments(segments: list[TranscriptSegment]) -> str:
+    """Concatène le texte de segments en une transcription continue."""
+    return " ".join(s.text for s in segments).strip()
+
+
+__all__ = ["Transcriber", "TranscriptSegment", "TranscriptionError", "join_segments"]

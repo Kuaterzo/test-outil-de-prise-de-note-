@@ -48,6 +48,11 @@ class Config:
     claude_model: str = "claude-opus-4-8"
     claude_effort: str = "medium"         # low | medium | high | max
 
+    # --- Diarisation (identification des locuteurs, optionnelle) -----------
+    diarization: bool = False             # « qui a dit quoi » via pyannote.audio
+    diarization_model: str = "pyannote/speaker-diarization-3.1"
+    hf_token: Optional[str] = None        # jeton Hugging Face (sinon variable d'env.)
+
     # --- Capture audio ------------------------------------------------------
     output_device: Optional[str] = None   # id du périphérique « monitor » / loopback choisi
     include_microphone: bool = False      # mixer aussi le micro (expérimental)

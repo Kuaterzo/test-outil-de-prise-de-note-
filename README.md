@@ -26,6 +26,7 @@ synthèse, deux moteurs sont disponibles au choix :
 - [Installation](#installation)
 - [Choisir le moteur de synthèse](#choisir-le-moteur-de-synthèse)
 - [Capturer la bonne sortie audio](#capturer-la-bonne-sortie-audio)
+- [Identifier les locuteurs (optionnel)](#identifier-les-locuteurs-optionnel)
 - [Utilisation — interface graphique](#utilisation--interface-graphique)
 - [Utilisation — ligne de commande](#utilisation--ligne-de-commande)
 - [Configuration](#configuration)
@@ -145,6 +146,42 @@ entendez), via un périphérique « **loopback** ». Concrètement :
 
 ---
 
+## Identifier les locuteurs (optionnel)
+
+Par défaut, l'outil produit une transcription continue. Vous pouvez activer la
+**diarisation** (« qui a dit quoi ») : la transcription est alors étiquetée
+`Locuteur 1 :`, `Locuteur 2 :`, … et la synthèse attribue plus fidèlement les
+**propos et les actions aux bonnes personnes**.
+
+Cette fonction est **optionnelle** et s'appuie sur
+[`pyannote.audio`](https://github.com/pyannote/pyannote-audio), qui nécessite un
+jeton Hugging Face gratuit :
+
+1. Installez la dépendance :
+   ```bash
+   pip install "pyannote.audio>=3.1"
+   # ou, depuis le projet :  pip install ".[diarization]"
+   ```
+2. Créez un compte sur <https://huggingface.co/> et un **jeton d'accès**
+   (Settings → Access Tokens).
+3. Acceptez les conditions du modèle
+   `pyannote/speaker-diarization-3.1` sur sa page Hugging Face.
+4. Fournissez le jeton, au choix :
+   ```powershell
+   setx HUGGINGFACE_TOKEN "hf_..."
+   ```
+   …ou via le champ `hf_token` de la configuration.
+5. Cochez **« Identifier les locuteurs »** dans l'interface (ou mettez
+   `"diarization": true` dans la configuration).
+
+> ℹ️ La diarisation **dégrade gracieusement** : si la dépendance ou le jeton
+> manquent, l'outil bascule automatiquement sur une transcription simple et le
+> traitement se poursuit (la raison est indiquée dans la barre de statut).
+> Elle ne devine pas les *noms* des personnes : les libellés restent
+> « Locuteur 1/2/… », que la synthèse relie aux noms cités pendant la réunion.
+
+---
+
 ## Utilisation — interface graphique
 
 Lancez l'interface :
@@ -212,6 +249,8 @@ Principaux champs :
 | `language` | langue de la réunion | `fr`, `en`, … |
 | `ollama_host` / `ollama_model` | serveur et modèle Ollama | ex. `llama3.1` |
 | `claude_model` / `claude_effort` | modèle et effort Claude | ex. `claude-opus-4-8` / `medium` |
+| `diarization` | identifier les locuteurs | `true` / `false` |
+| `diarization_model` / `hf_token` | modèle pyannote / jeton Hugging Face | ex. `pyannote/speaker-diarization-3.1` |
 | `output_dir` | dossier de sortie | chemin |
 | `save_transcript` / `keep_audio` | conserver `.txt` / `.wav` | `true` / `false` |
 
@@ -265,9 +304,10 @@ La synthèse est un fichier **Markdown** respectant la structure :
 
 ## Limitations connues
 
-- **Identification des locuteurs (diarisation)** : non gérée. Les noms repris
-  dans les actions sont ceux **cités** pendant la réunion. Une amélioration
-  future pourrait intégrer une diarisation (p. ex. `pyannote`).
+- **Identification des locuteurs (diarisation)** : prise en charge en **option**
+  (voir [la section dédiée](#identifier-les-locuteurs-optionnel)). Elle
+  distingue les locuteurs (`Locuteur 1/2/…`) mais ne devine pas leurs **noms** :
+  ceux-ci restent ceux **cités** pendant la réunion.
 - **Mixage micro + sortie** : expérimental. Les deux flux sont alignés sur leur
   longueur commune, ce qui peut introduire un léger décalage.
 - **macOS** : la capture de la sortie système nécessite un périphérique virtuel
@@ -295,7 +335,8 @@ La synthèse est un fichier **Markdown** respectant la structure :
 ```
 src/pmo_notes/
 ├── audio.py            Capture loopback + enregistrement WAV (soundcard)
-├── transcription.py    Transcription locale (faster-whisper)
+├── transcription.py    Transcription locale (faster-whisper), segments horodatés
+├── diarization.py      Identification des locuteurs (optionnel, pyannote.audio)
 ├── summarization/      Moteurs de synthèse
 │   ├── base.py         Logique commune (map-reduce des longues réunions)
 │   ├── ollama.py       Backend local Ollama

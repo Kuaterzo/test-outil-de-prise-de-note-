@@ -43,6 +43,10 @@ La transcription est issue d'une reconnaissance vocale automatique : elle peut \
 contenir des erreurs, des hésitations, des répétitions ou une ponctuation \
 approximative. Reconstitue le sens sans inventer d'informations absentes.
 
+Si la transcription comporte des étiquettes de locuteurs (par exemple \
+« Locuteur 1 : … »), exploite-les pour attribuer correctement les propos et les \
+actions aux bonnes personnes, sans inventer de noms.
+
 Rédige une synthèse professionnelle, claire et concise, en français, au format \
 Markdown, en respectant EXACTEMENT la structure suivante :
 

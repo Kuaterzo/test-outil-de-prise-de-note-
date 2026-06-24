@@ -155,6 +155,12 @@ class App:
             trans, text="(« small » : bon compromis ; « medium » : plus précis, plus lent)",
             foreground="#666",
         ).grid(row=0, column=2, sticky="w")
+        self.diar_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            trans,
+            text="Identifier les locuteurs (diarisation — nécessite pyannote.audio + jeton Hugging Face)",
+            variable=self.diar_var,
+        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
         # --- Contrôles ---
         controls = ttk.Frame(main)
@@ -211,6 +217,7 @@ class App:
         self.claude_model_var.set(c.claude_model)
         self.claude_effort_var.set(c.claude_effort)
         self.whisper_model_var.set(c.whisper_model)
+        self.diar_var.set(c.diarization)
         self._on_backend_change()
 
     def _collect_config(self) -> None:
@@ -222,6 +229,7 @@ class App:
         c.claude_model = self.claude_model_var.get().strip() or c.claude_model
         c.claude_effort = self.claude_effort_var.get() or c.claude_effort
         c.whisper_model = self.whisper_model_var.get() or c.whisper_model
+        c.diarization = bool(self.diar_var.get())
         device = self._selected_device()
         c.output_device = device.id if device else c.output_device
         try:
