@@ -62,6 +62,12 @@ def test_long_transcript_uses_map_reduce():
     assert summ.calls[-1][0] == SYNTHESIS_SYSTEM_PROMPT
 
 
+def test_summarize_uses_custom_system_prompt():
+    summ = DummySummarizer(single_pass_limit=10_000)
+    summ.summarize("Réunion.", MeetingContext(), system_prompt="INVITE PERSONNALISÉE")
+    assert summ.calls[0][0] == "INVITE PERSONNALISÉE"
+
+
 def test_chunk_text_short_returns_single():
     assert chunk_text("court", 1000) == ["court"]
 

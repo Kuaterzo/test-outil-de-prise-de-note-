@@ -33,6 +33,7 @@ class Config:
 
     # --- Moteur de synthèse -------------------------------------------------
     backend: str = "ollama"  # "ollama" (local) ou "claude" (API)
+    synthesis_template: str = "standard"  # modèle de réunion (voir templates.py)
 
     # --- Transcription locale (faster-whisper) ------------------------------
     whisper_model: str = "small"          # tiny | base | small | medium | large-v3

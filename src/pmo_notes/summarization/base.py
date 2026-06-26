@@ -68,8 +68,16 @@ class Summarizer(ABC):
         transcript: str,
         context: MeetingContext,
         progress: ProgressCallback = None,
+        *,
+        system_prompt: Optional[str] = None,
     ) -> str:
-        """Produit la synthèse structurée d'une transcription."""
+        """Produit la synthèse structurée d'une transcription.
+
+        `system_prompt` permet d'imposer la structure d'un modèle de réunion
+        (voir :mod:`pmo_notes.templates`) ; à défaut, le modèle standard est
+        utilisé.
+        """
+        system = system_prompt or SYNTHESIS_SYSTEM_PROMPT
         transcript = (transcript or "").strip()
         if not transcript:
             raise SummarizerError("La transcription est vide : rien à synthétiser.")
@@ -77,7 +85,7 @@ class Summarizer(ABC):
         if len(transcript) <= self.single_pass_limit:
             self._notify(progress, "Rédaction de la synthèse…")
             return self._complete(
-                SYNTHESIS_SYSTEM_PROMPT,
+                system,
                 build_synthesis_user_prompt(transcript, context),
             ).strip()
 
@@ -95,7 +103,7 @@ class Summarizer(ABC):
         self._notify(progress, "Assemblage de la synthèse finale…")
         combined = "\n\n".join(notes)
         return self._complete(
-            SYNTHESIS_SYSTEM_PROMPT,
+            system,
             build_reduce_user_prompt(combined, context),
         ).strip()
 

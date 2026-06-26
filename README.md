@@ -25,6 +25,7 @@ synthèse, deux moteurs sont disponibles au choix :
 - [Prérequis](#prérequis)
 - [Installation](#installation)
 - [Choisir le moteur de synthèse](#choisir-le-moteur-de-synthèse)
+- [Modèles par type de réunion](#modèles-par-type-de-réunion)
 - [Capturer la bonne sortie audio](#capturer-la-bonne-sortie-audio)
 - [Identifier les locuteurs (optionnel)](#identifier-les-locuteurs-optionnel)
 - [Utilisation — interface graphique](#utilisation--interface-graphique)
@@ -128,6 +129,50 @@ pip install -r requirements.txt
 
 Le modèle par défaut est `claude-opus-4-8`. Le niveau d'**effort** (`low` →
 `max`) règle le compromis qualité/coût ; `medium` est un bon point de départ.
+
+---
+
+## Modèles par type de réunion
+
+La structure de la synthèse s'adapte au **type de réunion**. Modèles fournis :
+
+| Clé | Modèle | Sections principales |
+|---|---|---|
+| `standard` | Standard | Introduction · Résumé des échanges · Actions à venir · Conclusion |
+| `copil` | Comité de pilotage | Avancement · Risques · Décisions · Actions et responsables · Jalons |
+| `atelier` | Atelier de travail | Points discutés · Livrables · Actions à mener |
+| `retrospective` | Rétrospective | Ce qui a bien fonctionné · Points à améliorer · Actions d'amélioration |
+| `point_avancement` | Point d'avancement / Daily | Avancement · Blocages · Actions et prochaines étapes |
+
+- **Interface** : choisissez le **Type** dans le cadre « Réunion ».
+- **Ligne de commande** : `pmo-notes templates` pour la liste, puis par exemple
+  `pmo-notes process reunion.wav --template copil`.
+- **Configuration** : champ `synthesis_template`.
+
+Toutes les variantes conservent les **règles de fidélité** et un format d'actions
+compatible avec le [registre d'actions](#registre-dactions).
+
+### Modèles personnalisés
+
+Ajoutez vos propres modèles dans un fichier `templates.json` placé à côté de la
+configuration (`%APPDATA%\PMONotes\` sous Windows) :
+
+```json
+{
+  "comite_projet": {
+    "name": "Comité de projet",
+    "sections": [
+      ["Introduction", "Contexte et participants."],
+      ["Avancement", "État d'avancement par lot de travail."],
+      ["Actions", "Une puce par action : **Responsable** — action (échéance)."],
+      ["Conclusion", "Prochaines étapes."]
+    ]
+  }
+}
+```
+
+> ℹ️ Incluez une section dont le titre contient « action » pour que le registre
+> d'actions puisse l'exploiter.
 
 ---
 
@@ -288,6 +333,7 @@ Principaux champs :
 | Champ | Rôle | Valeurs |
 |---|---|---|
 | `backend` | moteur de synthèse | `ollama`, `claude` |
+| `synthesis_template` | modèle par type de réunion | `standard`, `copil`, … |
 | `whisper_model` | modèle de transcription | `tiny`, `base`, `small`, `medium`, `large-v3` |
 | `whisper_device` | matériel de transcription | `auto`, `cpu`, `cuda` |
 | `language` | langue de la réunion | `fr`, `en`, … |
@@ -499,6 +545,7 @@ src/pmo_notes/
 ├── email_sender.py     Envoi de la synthèse par e-mail (SMTP, optionnel)
 ├── action_register.py  Registre d'actions inter-réunions (Excel/CSV)
 ├── prompts.py          Invites de synthèse (structure imposée)
+├── templates.py        Modèles de synthèse par type de réunion
 ├── pipeline.py         Orchestration enregistrement → synthèse → export
 ├── export.py           Écriture des synthèses (.md, .docx, .pdf) + transcription
 ├── config.py           Configuration (JSON)

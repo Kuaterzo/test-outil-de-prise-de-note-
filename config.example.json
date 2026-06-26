@@ -1,5 +1,6 @@
 {
   "backend": "ollama",
+  "synthesis_template": "standard",
   "whisper_model": "small",
   "whisper_device": "auto",
   "whisper_compute_type": "auto",

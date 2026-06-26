@@ -173,9 +173,14 @@ class MeetingPipeline:
         if self.config.diarization and self.config.infer_speaker_names:
             transcript = self._name_speakers(summarizer, transcript, progress)
 
+        from .templates import get_template
+
+        template = get_template(self.config.synthesis_template)
         if progress:
-            progress(f"Synthèse via {summarizer.name}…")
-        synthesis = summarizer.summarize(transcript, context, progress)
+            progress(f"Synthèse via {summarizer.name} (modèle : {template.name})…")
+        synthesis = summarizer.summarize(
+            transcript, context, progress, system_prompt=template.to_system_prompt()
+        )
         return MeetingDraft(
             synthesis=synthesis,
             transcript=transcript,

@@ -28,6 +28,7 @@ from tkinter.scrolledtext import ScrolledText
 from .config import Config
 from .pipeline import MeetingPipeline
 from .prompts import MeetingContext
+from .templates import list_templates
 
 _POLL_MS = 120  # fréquence de rafraîchissement de l'IHM pendant les traitements
 
@@ -75,6 +76,14 @@ class App:
         ttk.Label(meta, text="(séparés par des virgules)", foreground="#666").grid(
             row=2, column=1, sticky="w", padx=6
         )
+        ttk.Label(meta, text="Type :").grid(row=3, column=0, sticky="w")
+        self._templates = list_templates()  # liste de (clé, nom)
+        self.template_var = tk.StringVar()
+        self.template_combo = ttk.Combobox(
+            meta, textvariable=self.template_var, state="readonly",
+            values=[name for _key, name in self._templates],
+        )
+        self.template_combo.grid(row=3, column=1, sticky="ew", padx=6)
 
         # --- Capture audio ---
         audio = ttk.LabelFrame(main, text="Sortie audio à capturer", padding=8)
@@ -261,6 +270,7 @@ class App:
     def _apply_config(self) -> None:
         c = self.config
         self.backend_var.set(c.backend)
+        self._select_template(c.synthesis_template)
         self.mic_var.set(c.include_microphone)
         self.ollama_host_var.set(c.ollama_host)
         self.ollama_model_var.set(c.ollama_model)
@@ -280,6 +290,9 @@ class App:
     def _collect_config(self) -> None:
         c = self.config
         c.backend = self.backend_var.get()
+        idx = self.template_combo.current()
+        if 0 <= idx < len(self._templates):
+            c.synthesis_template = self._templates[idx][0]
         c.include_microphone = bool(self.mic_var.get())
         c.ollama_host = self.ollama_host_var.get().strip() or c.ollama_host
         c.ollama_model = self.ollama_model_var.get().strip() or c.ollama_model
@@ -300,6 +313,15 @@ class App:
             c.save()
         except OSError:
             pass  # la persistance ne doit jamais bloquer l'utilisateur
+
+    def _select_template(self, key: str) -> None:
+        """Positionne le menu déroulant sur le modèle `key` (sinon le premier)."""
+        for i, (k, _name) in enumerate(self._templates):
+            if k == key:
+                self.template_combo.current(i)
+                return
+        if self._templates:
+            self.template_combo.current(0)
 
     def _on_backend_change(self) -> None:
         if self.backend_var.get() == "claude":
