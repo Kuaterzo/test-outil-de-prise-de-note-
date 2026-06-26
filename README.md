@@ -28,6 +28,7 @@ synthèse, deux moteurs sont disponibles au choix :
 - [Capturer la bonne sortie audio](#capturer-la-bonne-sortie-audio)
 - [Identifier les locuteurs (optionnel)](#identifier-les-locuteurs-optionnel)
 - [Utilisation — interface graphique](#utilisation--interface-graphique)
+- [Relecture avant diffusion](#relecture-avant-diffusion)
 - [Utilisation — ligne de commande](#utilisation--ligne-de-commande)
 - [Configuration](#configuration)
 - [Où sont enregistrées les synthèses](#où-sont-enregistrées-les-synthèses)
@@ -209,11 +210,36 @@ python run_gui.py
 4. Cliquez sur **● Démarrer** au début de la réunion.
 5. Cliquez sur **■ Arrêter** à la fin : l'outil transcrit puis synthétise (la
    barre de statut indique l'avancement).
-6. La synthèse s'affiche et est **enregistrée automatiquement**. Le bouton
-   **« Ouvrir le dossier des synthèses »** ouvre l'emplacement des fichiers.
+6. Par défaut, la synthèse s'affiche en **mode relecture** : corrigez-la
+   directement dans la zone de texte, puis cliquez sur **« ✔ Valider et
+   enregistrer »** pour produire les fichiers (et l'e-mail si activé).
+7. Le bouton **« Ouvrir le dossier des synthèses »** ouvre l'emplacement des
+   fichiers.
 
 Vous pouvez aussi **« Charger un fichier audio… »** pour synthétiser un
 enregistrement existant (`.wav`, `.mp3`, `.m4a`, …).
+
+---
+
+## Relecture avant diffusion
+
+Une synthèse générée par IA mérite une **relecture humaine** avant d'être
+diffusée (corriger un nom, nuancer une formulation, retirer un point
+confidentiel). C'est pourquoi le traitement se fait en **deux temps** :
+
+1. **génération** du brouillon (transcription + synthèse) ;
+2. **finalisation** : enregistrement des fichiers, mise à jour du registre et
+   envoi de l'e-mail — déclenchée seulement après votre validation.
+
+- **Interface** : laissez la case **« Relire avant d'enregistrer »** cochée (par
+  défaut). À la fin du traitement, la synthèse s'affiche dans une zone
+  **éditable** ; corrigez-la, puis cliquez **« ✔ Valider et enregistrer »**.
+  Décochez la case pour un enregistrement automatique sans relecture.
+- **Ligne de commande** : ajoutez **`--review`** pour ouvrir le brouillon dans
+  votre éditeur (`$EDITOR`, sinon Bloc-notes/`nano`) avant la finalisation.
+
+Rien n'est exporté, inscrit au registre ni envoyé tant que vous n'avez pas
+validé : la relecture est un véritable garde-fou avant diffusion.
 
 ---
 
@@ -235,6 +261,9 @@ pmo-notes process reunion.wav --docx --pdf
 
 # Envoyer la synthèse par e-mail (serveur SMTP configuré dans config.json)
 pmo-notes process reunion.wav --email
+
+# Relire/éditer la synthèse dans l'éditeur avant enregistrement
+pmo-notes process reunion.wav --review
 
 # Forcer un moteur ponctuellement
 pmo-notes process reunion.wav --backend claude
@@ -271,6 +300,7 @@ Principaux champs :
 | `save_transcript` / `keep_audio` | conserver `.txt` / `.wav` | `true` / `false` |
 | `export_docx` / `export_pdf` | générer aussi `.docx` / `.pdf` | `true` / `false` |
 | `action_register` | tenir un registre d'actions cumulatif | `true` / `false` |
+| `review_before_save` | relire/éditer la synthèse avant diffusion | `true` / `false` |
 | `email_enabled` | envoyer la synthèse par e-mail | `true` / `false` |
 | `email_to` / `email_from` | destinataires / expéditeur | adresses e-mail |
 | `smtp_host` / `smtp_port` | serveur SMTP | ex. `smtp.exemple.fr` / `587` |

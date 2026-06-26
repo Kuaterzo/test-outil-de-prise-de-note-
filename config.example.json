@@ -22,6 +22,7 @@
   "export_docx": false,
   "export_pdf": false,
   "action_register": true,
+  "review_before_save": true,
   "email_enabled": false,
   "email_to": "",
   "email_from": "",

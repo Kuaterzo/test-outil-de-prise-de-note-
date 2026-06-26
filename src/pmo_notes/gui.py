@@ -45,6 +45,7 @@ class App:
         self._record_start: Optional[datetime] = None
         self._messages: "queue.Queue[tuple[str, object]]" = queue.Queue()
         self._busy = False  # transcription/synthèse en cours
+        self._draft = None  # brouillon en cours de relecture (phase d'édition)
 
         root.title("Assistant de synthèse de réunions — PMO")
         root.minsize(760, 640)
@@ -215,6 +216,10 @@ class App:
             controls, text="Charger un fichier audio…", command=self.load_audio_file
         )
         self.file_btn.pack(side="left", padx=6)
+        self.review_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            controls, text="Relire avant d'enregistrer", variable=self.review_var
+        ).pack(side="left", padx=12)
         self.timer_var = tk.StringVar(value="00:00")
         ttk.Label(controls, textvariable=self.timer_var, font=("TkDefaultFont", 12, "bold")).pack(
             side="right"
@@ -237,6 +242,11 @@ class App:
         self.output.grid(row=0, column=0, sticky="nsew")
         bottom = ttk.Frame(out)
         bottom.grid(row=1, column=0, sticky="ew", pady=(6, 0))
+        self.validate_btn = ttk.Button(
+            bottom, text="✔ Valider et enregistrer",
+            command=self.validate_synthesis, state="disabled",
+        )
+        self.validate_btn.pack(side="left", padx=(0, 8))
         self.open_btn = ttk.Button(
             bottom, text="Ouvrir le dossier des synthèses",
             command=self.open_output_dir, state="disabled",
@@ -262,6 +272,7 @@ class App:
         self.docx_var.set(c.export_docx)
         self.pdf_var.set(c.export_pdf)
         self.register_var.set(c.action_register)
+        self.review_var.set(c.review_before_save)
         self.email_enabled_var.set(c.email_enabled)
         self.email_to_var.set(c.email_to)
         self._on_backend_change()
@@ -280,6 +291,7 @@ class App:
         c.export_docx = bool(self.docx_var.get())
         c.export_pdf = bool(self.pdf_var.get())
         c.action_register = bool(self.register_var.get())
+        c.review_before_save = bool(self.review_var.get())
         c.email_enabled = bool(self.email_enabled_var.get())
         c.email_to = self.email_to_var.get().strip()
         device = self._selected_device()
@@ -414,6 +426,10 @@ class App:
     # --------------------------------------------------------------- processing
     def _start_processing(self, *, audio=None, samplerate=None, audio_path=None) -> None:
         self._busy = True
+        self._draft = None
+        self.validate_btn["state"] = "disabled"
+        self.open_btn["state"] = "disabled"
+        self.saved_var.set("")
         self._set_controls_enabled(False)
         self.output.delete("1.0", "end")
         context = self._build_context()
@@ -429,14 +445,35 @@ class App:
             self._messages.put(("status", msg))
 
         try:
-            if audio_path is not None:
-                result = self.pipeline.process_audio_file(audio_path, context, progress)
+            if self.config.review_before_save:
+                # Phase 1 seulement : on s'arrête au brouillon pour relecture.
+                if audio_path is not None:
+                    draft = self.pipeline.generate_from_file(audio_path, context, progress)
+                else:
+                    draft = self.pipeline.generate_from_recording(
+                        audio, samplerate, context, progress
+                    )
+                self._messages.put(("draft", draft))
             else:
-                result = self.pipeline.process_recording(
-                    audio, samplerate, context, progress
-                )
-            self._messages.put(("result", result))
+                # Bout en bout, sans relecture.
+                if audio_path is not None:
+                    result = self.pipeline.process_audio_file(audio_path, context, progress)
+                else:
+                    result = self.pipeline.process_recording(
+                        audio, samplerate, context, progress
+                    )
+                self._messages.put(("result", result))
         except Exception as exc:  # remonte toute erreur à l'IHM
+            self._messages.put(("error", str(exc)))
+
+    def _finalize_worker(self, draft, edited: str) -> None:
+        def progress(msg: str) -> None:
+            self._messages.put(("status", msg))
+
+        try:
+            result = self.pipeline.finalize(draft, edited, progress)
+            self._messages.put(("result", result))
+        except Exception as exc:
             self._messages.put(("error", str(exc)))
 
     def _poll_messages(self) -> None:
@@ -446,6 +483,8 @@ class App:
                 kind, payload = self._messages.get_nowait()
                 if kind == "status":
                     self.set_status(str(payload))
+                elif kind == "draft":
+                    self._on_draft(payload)
                 elif kind == "result":
                     self._on_result(payload)
                 elif kind == "error":
@@ -453,6 +492,32 @@ class App:
         except queue.Empty:
             pass
         self.root.after(_POLL_MS, self._poll_messages)
+
+    def _on_draft(self, draft) -> None:
+        """Affiche le brouillon éditable et attend la validation de l'utilisateur."""
+        self._draft = draft
+        self.output.delete("1.0", "end")
+        self.output.insert("1.0", draft.synthesis)
+        self.validate_btn["state"] = "normal"
+        self.set_status(
+            "Relisez et corrigez la synthèse ci-dessous, puis cliquez "
+            "« ✔ Valider et enregistrer »."
+        )
+
+    def validate_synthesis(self) -> None:
+        """Lance la finalisation à partir de la synthèse (éventuellement éditée)."""
+        if not self._draft:
+            return
+        edited = self.output.get("1.0", "end").strip()
+        if not edited:
+            messagebox.showwarning("Synthèse vide", "La synthèse ne peut pas être vide.")
+            return
+        self.validate_btn["state"] = "disabled"
+        self.set_status("Finalisation…")
+        worker = threading.Thread(
+            target=self._finalize_worker, args=(self._draft, edited), daemon=True
+        )
+        worker.start()
 
     def _on_result(self, result) -> None:
         self.output.delete("1.0", "end")
@@ -494,6 +559,8 @@ class App:
         self.timer_var.set("00:00")
         self._set_controls_enabled(True)
         self.stop_btn["state"] = "disabled"
+        self.validate_btn["state"] = "disabled"
+        self._draft = None
 
     def set_status(self, message: str, *, error: bool = False) -> None:
         self.status_var.set(message)

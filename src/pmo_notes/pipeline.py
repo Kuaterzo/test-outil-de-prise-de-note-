@@ -1,9 +1,16 @@
 """Orchestration : enregistrement → transcription → synthèse → export.
 
-Le pipeline relie les briques entre elles et expose deux points d'entrée :
+Le traitement se décompose en deux phases, ce qui permet une **relecture/édition
+de la synthèse avant diffusion** :
 
-* :meth:`MeetingPipeline.process_recording` — à partir d'un signal capturé,
-* :meth:`MeetingPipeline.process_audio_file` — à partir d'un fichier audio existant.
+1. *génération* du brouillon — :meth:`MeetingPipeline.generate_from_recording`
+   / :meth:`MeetingPipeline.generate_from_file` → un :class:`MeetingDraft` ;
+2. *finalisation* — :meth:`MeetingPipeline.finalize` enregistre, exporte, met à
+   jour le registre et envoie l'e-mail, à partir de la synthèse (éventuellement
+   corrigée).
+
+Les méthodes :meth:`process_recording` / :meth:`process_audio_file` enchaînent
+les deux phases d'un coup (comportement « sans relecture »).
 
 Les modules lourds (audio, transcription) sont importés paresseusement.
 """
@@ -59,6 +66,17 @@ class MeetingResult:
         return [p for p in candidates if p is not None]
 
 
+@dataclass
+class MeetingDraft:
+    """Brouillon de synthèse, avant enregistrement/diffusion (phase de relecture)."""
+
+    synthesis: str
+    transcript: str
+    context: MeetingContext
+    when: datetime
+    audio_path: Optional[Path] = None
+
+
 class MeetingPipeline:
     """Chaîne de traitement complète, pilotée par une :class:`Config`."""
 
@@ -67,7 +85,7 @@ class MeetingPipeline:
         self._transcriber: Optional["Transcriber"] = None
         self._transcriber_key: Optional[tuple] = None
 
-    # ----------------------------------------------------------- points d'entrée
+    # ----------------------------------------------------------- bout en bout
     def process_recording(
         self,
         audio: "np.ndarray",
@@ -77,35 +95,9 @@ class MeetingPipeline:
         *,
         when: Optional[datetime] = None,
     ) -> MeetingResult:
-        """Traite un signal audio capturé en mémoire."""
-        from .audio import save_wav
-
-        when = when or datetime.now()
-        out_dir = self.config.resolved_output_dir()
-        basename = build_basename(context.title, when)
-
-        if self.config.keep_audio:
-            audio_path = save_wav(out_dir / f"{basename}.wav", audio, samplerate)
-            wav_for_transcription = audio_path
-        else:
-            audio_path = None
-            wav_for_transcription = Path(tempfile.gettempdir()) / f"pmo_{basename}.wav"
-            save_wav(wav_for_transcription, audio, samplerate)
-
-        try:
-            return self.process_audio_file(
-                wav_for_transcription,
-                context,
-                progress,
-                when=when,
-                _audio_path=audio_path,
-            )
-        finally:
-            if not self.config.keep_audio:
-                try:
-                    wav_for_transcription.unlink()
-                except OSError:
-                    pass
+        """Traite un signal capturé de bout en bout (génération + finalisation)."""
+        draft = self.generate_from_recording(audio, samplerate, context, progress, when=when)
+        return self.finalize(draft, draft.synthesis, progress)
 
     def process_audio_file(
         self,
@@ -116,7 +108,58 @@ class MeetingPipeline:
         when: Optional[datetime] = None,
         _audio_path: Optional[Path] = None,
     ) -> MeetingResult:
-        """Transcrit puis synthétise un fichier audio, et exporte le résultat."""
+        """Traite un fichier audio de bout en bout (génération + finalisation)."""
+        draft = self.generate_from_file(
+            audio_path, context, progress, when=when, kept_audio_path=_audio_path
+        )
+        return self.finalize(draft, draft.synthesis, progress)
+
+    # --- Phase 1 : génération du brouillon de synthèse ----------------------
+    def generate_from_recording(
+        self,
+        audio: "np.ndarray",
+        samplerate: int,
+        context: MeetingContext,
+        progress: ProgressCallback = None,
+        *,
+        when: Optional[datetime] = None,
+    ) -> MeetingDraft:
+        """Transcrit et synthétise un signal capturé, sans rien exporter encore."""
+        from .audio import save_wav
+
+        when = when or datetime.now()
+        out_dir = self.config.resolved_output_dir()
+        basename = build_basename(context.title, when)
+
+        if self.config.keep_audio:
+            audio_path = save_wav(out_dir / f"{basename}.wav", audio, samplerate)
+            source = audio_path
+        else:
+            audio_path = None
+            source = Path(tempfile.gettempdir()) / f"pmo_{basename}.wav"
+            save_wav(source, audio, samplerate)
+
+        try:
+            return self.generate_from_file(
+                source, context, progress, when=when, kept_audio_path=audio_path
+            )
+        finally:
+            if not self.config.keep_audio:
+                try:
+                    source.unlink()
+                except OSError:
+                    pass
+
+    def generate_from_file(
+        self,
+        audio_path: Path,
+        context: MeetingContext,
+        progress: ProgressCallback = None,
+        *,
+        when: Optional[datetime] = None,
+        kept_audio_path: Optional[Path] = None,
+    ) -> MeetingDraft:
+        """Transcrit et synthétise un fichier audio ; renvoie un brouillon à relire."""
         transcriber = self._get_transcriber()
         segments = transcriber.transcribe_segments(Path(audio_path), progress)
         if not segments:
@@ -133,16 +176,40 @@ class MeetingPipeline:
         if progress:
             progress(f"Synthèse via {summarizer.name}…")
         synthesis = summarizer.summarize(transcript, context, progress)
+        return MeetingDraft(
+            synthesis=synthesis,
+            transcript=transcript,
+            context=context,
+            when=when or datetime.now(),
+            audio_path=kept_audio_path,
+        )
 
-        when = when or datetime.now()
+    # --- Phase 2 : finalisation (enregistrement, export, registre, e-mail) --
+    def finalize(
+        self,
+        draft: MeetingDraft,
+        synthesis: Optional[str] = None,
+        progress: ProgressCallback = None,
+    ) -> MeetingResult:
+        """Enregistre et diffuse la synthèse (éventuellement relue/éditée).
+
+        `synthesis` permet de fournir une version corrigée du brouillon ; à
+        défaut, le texte du brouillon est utilisé tel quel.
+        """
+        synthesis = (synthesis if synthesis is not None else draft.synthesis).strip()
+        if not synthesis:
+            raise PipelineError("La synthèse est vide : rien à enregistrer.")
+        context = draft.context
+        when = draft.when
+        out_dir = self.config.resolved_output_dir()
+
         if progress:
             progress("Enregistrement de la synthèse…")
-        out_dir = self.config.resolved_output_dir()
         paths = save_synthesis(
             synthesis,
             out_dir,
             context.title,
-            transcript=transcript if self.config.save_transcript else None,
+            transcript=draft.transcript if self.config.save_transcript else None,
             when=when,
         )
 
@@ -160,11 +227,11 @@ class MeetingPipeline:
             )
 
         result = MeetingResult(
-            transcript=transcript,
+            transcript=draft.transcript,
             synthesis=synthesis,
             synthesis_path=paths["synthesis"],
             transcript_path=paths.get("transcript"),
-            audio_path=_audio_path,
+            audio_path=draft.audio_path,
             docx_path=docx_path,
             pdf_path=pdf_path,
         )
@@ -312,4 +379,4 @@ class MeetingPipeline:
         return self._transcriber
 
 
-__all__ = ["MeetingPipeline", "MeetingResult", "PipelineError"]
+__all__ = ["MeetingPipeline", "MeetingResult", "MeetingDraft", "PipelineError"]

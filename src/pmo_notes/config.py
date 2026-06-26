@@ -67,6 +67,7 @@ class Config:
     export_docx: bool = False             # générer aussi une synthèse Word (.docx)
     export_pdf: bool = False              # générer aussi une synthèse PDF
     action_register: bool = True          # tenir un registre d'actions cumulatif (xlsx/csv)
+    review_before_save: bool = True       # relire/éditer la synthèse avant diffusion (IHM)
 
     # --- Envoi par e-mail (optionnel, SMTP) --------------------------------
     email_enabled: bool = False

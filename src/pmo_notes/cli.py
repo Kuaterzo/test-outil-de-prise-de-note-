@@ -25,6 +25,38 @@ def _progress(message: str) -> None:
     print(f"  … {message}", file=sys.stderr, flush=True)
 
 
+def _review_synthesis(draft) -> str:
+    """Ouvre le brouillon de synthèse dans un éditeur et renvoie le texte relu."""
+    import os
+    import subprocess
+    import tempfile
+
+    editor = os.environ.get("EDITOR") or ("notepad" if os.name == "nt" else "nano")
+    fd, tmp = tempfile.mkstemp(suffix=".md", text=True)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(draft.synthesis)
+        print(f"Relecture : ouverture de l'éditeur ({editor})…", file=sys.stderr)
+        try:
+            subprocess.call([editor, tmp])
+        except Exception:
+            input(f"Édite le fichier {tmp} puis appuie sur Entrée…")
+        with open(tmp, encoding="utf-8") as handle:
+            return handle.read()
+    finally:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+
+
+def _run(pipeline, draft_factory, review: bool):
+    """Génère le brouillon puis finalise (avec relecture éditeur si demandé)."""
+    draft = draft_factory()
+    synthesis = _review_synthesis(draft) if review else draft.synthesis
+    return pipeline.finalize(draft, synthesis, _progress)
+
+
 def _context_from_args(args) -> MeetingContext:
     participants = [p.strip() for p in (args.participants or "").split(",") if p.strip()]
     return MeetingContext(
@@ -87,8 +119,11 @@ def cmd_record(args) -> int:
     print("Arrêté. Traitement en cours…", file=sys.stderr)
 
     pipeline = MeetingPipeline(config)
-    result = pipeline.process_recording(
-        audio, samplerate, _context_from_args(args), _progress
+    context = _context_from_args(args)
+    result = _run(
+        pipeline,
+        lambda: pipeline.generate_from_recording(audio, samplerate, context, _progress),
+        review=args.review,
     )
     _print_result(result)
     return 0
@@ -107,8 +142,11 @@ def cmd_process(args) -> int:
     if args.no_register:
         config.action_register = False
     pipeline = MeetingPipeline(config)
-    result = pipeline.process_audio_file(
-        Path(args.file), _context_from_args(args), _progress
+    context = _context_from_args(args)
+    result = _run(
+        pipeline,
+        lambda: pipeline.generate_from_file(Path(args.file), context, _progress),
+        review=args.review,
     )
     _print_result(result)
     return 0
@@ -162,6 +200,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_rec.add_argument("--pdf", action="store_true", help="Exporter aussi en PDF.")
     p_rec.add_argument("--email", action="store_true", help="Envoyer la synthèse par e-mail.")
     p_rec.add_argument("--no-register", action="store_true", help="Ne pas mettre à jour le registre d'actions.")
+    p_rec.add_argument("--review", action="store_true", help="Relire/éditer la synthèse (éditeur) avant enregistrement.")
     p_rec.set_defaults(func=cmd_record)
 
     p_proc = sub.add_parser("process", help="Synthétiser un fichier audio existant.")
@@ -173,6 +212,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_proc.add_argument("--pdf", action="store_true", help="Exporter aussi en PDF.")
     p_proc.add_argument("--email", action="store_true", help="Envoyer la synthèse par e-mail.")
     p_proc.add_argument("--no-register", action="store_true", help="Ne pas mettre à jour le registre d'actions.")
+    p_proc.add_argument("--review", action="store_true", help="Relire/éditer la synthèse (éditeur) avant enregistrement.")
     p_proc.set_defaults(func=cmd_process)
 
     p_gui = sub.add_parser("gui", help="Lancer l'interface graphique.")
