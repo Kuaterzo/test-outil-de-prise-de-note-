@@ -1,7 +1,6 @@
 import pytest
 
 from pmo_notes.action_register import (
-    ActionItem,
     append_to_csv,
     append_to_xlsx,
     extract_actions,

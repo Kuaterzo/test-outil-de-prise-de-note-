@@ -14,7 +14,6 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 _SLUG_INVALID = re.compile(r'[<>:"/\\|?*\x00-\x1f]+')
 _SLUG_SPACES = re.compile(r"\s+")

@@ -21,6 +21,7 @@ synthèse, deux moteurs sont disponibles au choix :
 
 ## Sommaire
 
+- [Fonctionnalités](#fonctionnalités)
 - [Comment ça marche](#comment-ça-marche)
 - [Prérequis](#prérequis)
 - [Installation](#installation)
@@ -42,6 +43,22 @@ synthèse, deux moteurs sont disponibles au choix :
 - [Limitations connues](#limitations-connues)
 - [Dépannage](#dépannage)
 - [Structure du projet](#structure-du-projet)
+
+---
+
+## Fonctionnalités
+
+- 🎧 **Capture de la sortie audio** de votre choix (loopback), microphone en option
+- 📝 **Transcription locale** (Whisper), guidée par un [glossaire métier](#vocabulaire-métier-glossaire) (noms propres, acronymes)
+- 🗣️ **Identification des locuteurs** et **détection de leurs noms** ([diarisation](#identifier-les-locuteurs-optionnel), optionnelle)
+- 🧠 **Synthèse structurée** par [moteur configurable](#choisir-le-moteur-de-synthèse) (Ollama local / API Claude)
+- 📋 **Modèles par type de réunion** (COPIL, atelier, rétrospective, daily…)
+- ✏️ **Relecture/édition** de la synthèse [avant diffusion](#relecture-avant-diffusion)
+- 📄 **Exports** Markdown, **Word (.docx)** et **PDF**
+- 📊 **Registre d'actions** cumulatif (Excel/CSV) pour [suivre les actions](#registre-dactions) dans le temps
+- ✉️ **Envoi par e-mail** automatique (SMTP)
+- 🖥️ **Interface graphique** et **ligne de commande**, plus un [exécutable Windows](#créer-un-exécutable-windows)
+- 🔒 **Local par défaut** : capture et transcription ne quittent pas la machine
 
 ---
 

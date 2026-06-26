@@ -49,7 +49,7 @@ class App:
         self._draft = None  # brouillon en cours de relecture (phase d'édition)
 
         root.title("Assistant de synthèse de réunions — PMO")
-        root.minsize(760, 640)
+        root.minsize(820, 760)
         self._build_ui()
         self._apply_config()
         self.refresh_devices()
