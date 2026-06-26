@@ -11,7 +11,7 @@ Les modules lourds (audio, transcription) sont importés paresseusement.
 from __future__ import annotations
 
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional
@@ -44,6 +44,7 @@ class MeetingResult:
     audio_path: Optional[Path] = None
     docx_path: Optional[Path] = None
     pdf_path: Optional[Path] = None
+    register_paths: list = field(default_factory=list)
     email_sent: bool = False
 
     def all_paths(self) -> list[Path]:
@@ -168,9 +169,33 @@ class MeetingPipeline:
             pdf_path=pdf_path,
         )
 
+        if self.config.action_register:
+            self._update_action_register(result, context, progress)
         if self.config.email_enabled:
             self._send_email(result, context, progress)
         return result
+
+    def _update_action_register(self, result: "MeetingResult", context, progress: ProgressCallback) -> None:
+        """Ajoute les actions de la synthèse au registre cumulatif (xlsx/csv)."""
+        try:
+            from .action_register import extract_actions, update_register
+
+            items = extract_actions(
+                result.synthesis,
+                meeting=context.title,
+                date=context.date,
+                source=result.synthesis_path.name,
+            )
+            if not items:
+                return
+            if progress:
+                progress(f"Mise à jour du registre d'actions ({len(items)} action(s))…")
+            result.register_paths = update_register(
+                self.config.resolved_output_dir(), items
+            )
+        except Exception as exc:  # repli gracieux
+            if progress:
+                progress(f"Registre d'actions non mis à jour ({exc}).")
 
     def _send_email(self, result: "MeetingResult", context, progress: ProgressCallback) -> None:
         """Envoie la synthèse par e-mail (pièces jointes md/docx/pdf).

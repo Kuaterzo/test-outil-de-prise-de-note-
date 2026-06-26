@@ -66,6 +66,7 @@ class Config:
     keep_audio: bool = True               # conserver l'enregistrement audio (.wav)
     export_docx: bool = False             # générer aussi une synthèse Word (.docx)
     export_pdf: bool = False              # générer aussi une synthèse PDF
+    action_register: bool = True          # tenir un registre d'actions cumulatif (xlsx/csv)
 
     # --- Envoi par e-mail (optionnel, SMTP) --------------------------------
     email_enabled: bool = False

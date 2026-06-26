@@ -180,6 +180,10 @@ class App:
             side="left", padx=12
         )
         ttk.Checkbutton(export, text="PDF (.pdf)", variable=self.pdf_var).pack(side="left")
+        self.register_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            export, text="Registre d'actions (Excel/CSV)", variable=self.register_var
+        ).pack(side="left", padx=12)
 
         # --- Envoi par e-mail ---
         mail = ttk.LabelFrame(main, text="Envoi par e-mail (optionnel)", padding=8)
@@ -257,6 +261,7 @@ class App:
         self.names_var.set(c.infer_speaker_names)
         self.docx_var.set(c.export_docx)
         self.pdf_var.set(c.export_pdf)
+        self.register_var.set(c.action_register)
         self.email_enabled_var.set(c.email_enabled)
         self.email_to_var.set(c.email_to)
         self._on_backend_change()
@@ -274,6 +279,7 @@ class App:
         c.infer_speaker_names = bool(self.names_var.get())
         c.export_docx = bool(self.docx_var.get())
         c.export_pdf = bool(self.pdf_var.get())
+        c.action_register = bool(self.register_var.get())
         c.email_enabled = bool(self.email_enabled_var.get())
         c.email_to = self.email_to_var.get().strip()
         device = self._selected_device()
@@ -455,6 +461,8 @@ class App:
         self.saved_var.set(f"Fichiers enregistrés : {files}")
         self.open_btn["state"] = "normal"
         done = "Synthèse terminée et envoyée par e-mail. ✔" if result.email_sent else "Synthèse terminée. ✔"
+        if result.register_paths:
+            done += " Registre d'actions mis à jour."
         self.set_status(done)
         self._busy = False
         self._reset_idle()

@@ -31,6 +31,7 @@ synthèse, deux moteurs sont disponibles au choix :
 - [Utilisation — ligne de commande](#utilisation--ligne-de-commande)
 - [Configuration](#configuration)
 - [Où sont enregistrées les synthèses](#où-sont-enregistrées-les-synthèses)
+- [Registre d'actions](#registre-dactions)
 - [Envoi par e-mail (optionnel)](#envoi-par-e-mail-optionnel)
 - [Performances et modèles Whisper](#performances-et-modèles-whisper)
 - [Créer un exécutable Windows](#créer-un-exécutable-windows)
@@ -269,6 +270,7 @@ Principaux champs :
 | `output_dir` | dossier de sortie | chemin |
 | `save_transcript` / `keep_audio` | conserver `.txt` / `.wav` | `true` / `false` |
 | `export_docx` / `export_pdf` | générer aussi `.docx` / `.pdf` | `true` / `false` |
+| `action_register` | tenir un registre d'actions cumulatif | `true` / `false` |
 | `email_enabled` | envoyer la synthèse par e-mail | `true` / `false` |
 | `email_to` / `email_from` | destinataires / expéditeur | adresses e-mail |
 | `smtp_host` / `smtp_port` | serveur SMTP | ex. `smtp.exemple.fr` / `587` |
@@ -299,6 +301,28 @@ ajoutez `--docx` / `--pdf`). Ces documents reprennent la même structure (titres
 de sections, puces, responsables en gras). *(Aucun logiciel bureautique n'est
 requis : la génération utilise `python-docx` et `reportlab`, installés avec les
 dépendances.)*
+
+---
+
+## Registre d'actions
+
+Au-delà de chaque synthèse, l'outil tient un **registre d'actions cumulatif** :
+les actions de la section « Actions à venir » de chaque réunion y sont ajoutées
+automatiquement. On passe ainsi d'une synthèse isolée au **suivi des actions
+dans le temps** — le cœur du métier PMO.
+
+Deux fichiers sont maintenus dans le dossier de sortie :
+
+- `registre_actions.xlsx` — classeur Excel (si `openpyxl` est installé) ;
+- `registre_actions.csv` — équivalent CSV (séparateur `;`, ouvrable dans Excel).
+
+Colonnes : **Date · Réunion · Responsable · Action · Échéance · Statut · Source**.
+Le statut est initialisé à « À faire » ; vous pouvez l'actualiser librement dans
+le fichier — les nouvelles actions sont simplement ajoutées à la suite.
+
+Activé par défaut. Décochez **« Registre d'actions »** dans l'interface (ou mettez
+`action_register: false` dans la configuration, ou ajoutez `--no-register` en
+ligne de commande) pour le désactiver.
 
 ---
 
@@ -443,6 +467,7 @@ src/pmo_notes/
 │   ├── ollama.py       Backend local Ollama
 │   └── claude.py       Backend API Claude (Anthropic)
 ├── email_sender.py     Envoi de la synthèse par e-mail (SMTP, optionnel)
+├── action_register.py  Registre d'actions inter-réunions (Excel/CSV)
 ├── prompts.py          Invites de synthèse (structure imposée)
 ├── pipeline.py         Orchestration enregistrement → synthèse → export
 ├── export.py           Écriture des synthèses (.md, .docx, .pdf) + transcription
