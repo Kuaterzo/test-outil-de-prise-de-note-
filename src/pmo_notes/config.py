@@ -52,6 +52,7 @@ class Config:
     diarization: bool = False             # « qui a dit quoi » via pyannote.audio
     diarization_model: str = "pyannote/speaker-diarization-3.1"
     hf_token: Optional[str] = None        # jeton Hugging Face (sinon variable d'env.)
+    infer_speaker_names: bool = True      # deviner les vrais noms (tour de table)
 
     # --- Capture audio ------------------------------------------------------
     output_device: Optional[str] = None   # id du périphérique « monitor » / loopback choisi

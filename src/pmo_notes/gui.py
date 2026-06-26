@@ -161,6 +161,12 @@ class App:
             text="Identifier les locuteurs (diarisation — nécessite pyannote.audio + jeton Hugging Face)",
             variable=self.diar_var,
         ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 0))
+        self.names_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            trans,
+            text="Deviner les vrais noms des locuteurs (à partir du tour de table)",
+            variable=self.names_var,
+        ).grid(row=2, column=0, columnspan=3, sticky="w")
 
         # --- Formats d'export ---
         export = ttk.LabelFrame(main, text="Formats d'export", padding=8)
@@ -231,6 +237,7 @@ class App:
         self.claude_effort_var.set(c.claude_effort)
         self.whisper_model_var.set(c.whisper_model)
         self.diar_var.set(c.diarization)
+        self.names_var.set(c.infer_speaker_names)
         self.docx_var.set(c.export_docx)
         self.pdf_var.set(c.export_pdf)
         self._on_backend_change()
@@ -245,6 +252,7 @@ class App:
         c.claude_effort = self.claude_effort_var.get() or c.claude_effort
         c.whisper_model = self.whisper_model_var.get() or c.whisper_model
         c.diarization = bool(self.diar_var.get())
+        c.infer_speaker_names = bool(self.names_var.get())
         c.export_docx = bool(self.docx_var.get())
         c.export_pdf = bool(self.pdf_var.get())
         device = self._selected_device()

@@ -58,6 +58,11 @@ class Summarizer(ABC):
         """
 
     # --------------------------------------------------------------- public
+    def complete(self, system_prompt: str, user_prompt: str) -> str:
+        """Appel direct du modèle (utilisé pour des tâches auxiliaires, p. ex.
+        l'identification des noms de locuteurs)."""
+        return self._complete(system_prompt, user_prompt)
+
     def summarize(
         self,
         transcript: str,

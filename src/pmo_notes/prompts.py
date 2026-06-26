@@ -129,11 +129,44 @@ def build_reduce_user_prompt(notes: str, context: MeetingContext) -> str:
     )
 
 
+# --- Identification des noms de locuteurs (à partir du tour de table) -------
+# Lorsque la diarisation a étiqueté les interventions « Locuteur 1/2/… », on
+# tente de retrouver les vrais noms à partir des présentations énoncées dans la
+# réunion. La sortie est un JSON strict, facile à parser et à appliquer.
+
+SPEAKER_NAMES_SYSTEM_PROMPT = """\
+Tu analyses la transcription d'une réunion où les interventions sont étiquetées \
+« Locuteur 1 », « Locuteur 2 », etc. À partir des présentations (tour de table) \
+et du contexte, identifie le prénom ou le nom réel de chaque locuteur LORSQU'IL \
+est clairement énoncé dans la transcription.
+
+Réponds UNIQUEMENT par un objet JSON associant chaque étiquette à un nom, par \
+exemple : {"Locuteur 1": "Alice Martin", "Locuteur 2": "Bob"}.
+
+Règles impératives :
+- N'inclus une étiquette QUE si le nom est explicite et non ambigu.
+- N'invente jamais de nom. En cas de doute, omets simplement l'étiquette.
+- Ne renvoie rien d'autre que l'objet JSON (pas de phrase, pas de balises).
+"""
+
+
+def build_speaker_names_user_prompt(labeled_transcript: str) -> str:
+    """Invite pour déduire les noms des locuteurs d'une transcription étiquetée."""
+    return (
+        "Transcription étiquetée par locuteur :\n\n"
+        "<transcription>\n"
+        f"{labeled_transcript.strip()}\n"
+        "</transcription>"
+    )
+
+
 __all__ = [
     "MeetingContext",
     "SYNTHESIS_SYSTEM_PROMPT",
     "CHUNK_SYSTEM_PROMPT",
+    "SPEAKER_NAMES_SYSTEM_PROMPT",
     "build_synthesis_user_prompt",
     "build_chunk_user_prompt",
     "build_reduce_user_prompt",
+    "build_speaker_names_user_prompt",
 ]

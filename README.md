@@ -174,11 +174,17 @@ jeton Hugging Face gratuit :
 5. Cochez **« Identifier les locuteurs »** dans l'interface (ou mettez
    `"diarization": true` dans la configuration).
 
+Quand c'est possible, l'outil **devine en plus les vrais noms** des locuteurs à
+partir du **tour de table** (« Bonjour, Alice à l'appareil… ») et remplace
+`Locuteur 1/2/…` par ces noms avant la synthèse. Cette détection est
+désactivable via la case **« Deviner les vrais noms… »** (ou `infer_speaker_names`
+dans la configuration).
+
 > ℹ️ La diarisation **dégrade gracieusement** : si la dépendance ou le jeton
 > manquent, l'outil bascule automatiquement sur une transcription simple et le
 > traitement se poursuit (la raison est indiquée dans la barre de statut).
-> Elle ne devine pas les *noms* des personnes : les libellés restent
-> « Locuteur 1/2/… », que la synthèse relie aux noms cités pendant la réunion.
+> Si un nom n'est pas clairement énoncé, le libellé « Locuteur N » est conservé
+> (aucun nom n'est inventé).
 
 ---
 
@@ -254,6 +260,7 @@ Principaux champs :
 | `claude_model` / `claude_effort` | modèle et effort Claude | ex. `claude-opus-4-8` / `medium` |
 | `diarization` | identifier les locuteurs | `true` / `false` |
 | `diarization_model` / `hf_token` | modèle pyannote / jeton Hugging Face | ex. `pyannote/speaker-diarization-3.1` |
+| `infer_speaker_names` | deviner les noms (tour de table) | `true` / `false` |
 | `output_dir` | dossier de sortie | chemin |
 | `save_transcript` / `keep_audio` | conserver `.txt` / `.wav` | `true` / `false` |
 | `export_docx` / `export_pdf` | générer aussi `.docx` / `.pdf` | `true` / `false` |
@@ -317,9 +324,9 @@ dépendances.)*
 ## Limitations connues
 
 - **Identification des locuteurs (diarisation)** : prise en charge en **option**
-  (voir [la section dédiée](#identifier-les-locuteurs-optionnel)). Elle
-  distingue les locuteurs (`Locuteur 1/2/…`) mais ne devine pas leurs **noms** :
-  ceux-ci restent ceux **cités** pendant la réunion.
+  (voir [la section dédiée](#identifier-les-locuteurs-optionnel)). Les vrais
+  **noms** sont devinés lorsqu'ils sont énoncés (tour de table) ; à défaut, le
+  libellé `Locuteur N` est conservé — aucun nom n'est inventé.
 - **Mixage micro + sortie** : expérimental. Les deux flux sont alignés sur leur
   longueur commune, ce qui peut introduire un léger décalage.
 - **macOS** : la capture de la sortie système nécessite un périphérique virtuel
@@ -349,6 +356,7 @@ src/pmo_notes/
 ├── audio.py            Capture loopback + enregistrement WAV (soundcard)
 ├── transcription.py    Transcription locale (faster-whisper), segments horodatés
 ├── diarization.py      Identification des locuteurs (optionnel, pyannote.audio)
+├── speaker_names.py    Détection des vrais noms (tour de table) via le modèle
 ├── summarization/      Moteurs de synthèse
 │   ├── base.py         Logique commune (map-reduce des longues réunions)
 │   ├── ollama.py       Backend local Ollama

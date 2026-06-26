@@ -125,6 +125,9 @@ class MeetingPipeline:
         transcript = self._build_transcript(segments, Path(audio_path), progress)
 
         summarizer = get_summarizer(self.config)
+        if self.config.diarization and self.config.infer_speaker_names:
+            transcript = self._name_speakers(summarizer, transcript, progress)
+
         if progress:
             progress(f"Synthèse via {summarizer.name}…")
         synthesis = summarizer.summarize(transcript, context, progress)
@@ -177,6 +180,31 @@ class MeetingPipeline:
             return None
 
     # ----------------------------------------------------------------- interne
+    @staticmethod
+    def _name_speakers(summarizer, transcript: str, progress: ProgressCallback) -> str:
+        """Remplace « Locuteur N » par les vrais noms si on peut les déduire.
+
+        N'interrompt jamais le traitement : en cas d'échec, la transcription
+        étiquetée d'origine est conservée.
+        """
+        if "Locuteur " not in transcript:
+            return transcript  # pas de diarisation exploitable
+        try:
+            from .speaker_names import name_speakers
+
+            if progress:
+                progress("Identification des noms des locuteurs…")
+            renamed, mapping = name_speakers(summarizer, transcript)
+            if progress and mapping:
+                progress(
+                    f"{len(mapping)} locuteur(s) nommé(s) : " + ", ".join(mapping.values())
+                )
+            return renamed
+        except Exception as exc:  # repli gracieux
+            if progress:
+                progress(f"Noms des locuteurs non déterminés ({exc}).")
+            return transcript
+
     def _build_transcript(self, segments, audio_path: Path, progress: ProgressCallback) -> str:
         """Construit la transcription, avec ou sans étiquettes de locuteurs.
 

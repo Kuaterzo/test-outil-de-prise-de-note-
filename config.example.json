@@ -11,6 +11,7 @@
   "diarization": false,
   "diarization_model": "pyannote/speaker-diarization-3.1",
   "hf_token": null,
+  "infer_speaker_names": true,
   "output_device": null,
   "include_microphone": false,
   "mic_device": null,
