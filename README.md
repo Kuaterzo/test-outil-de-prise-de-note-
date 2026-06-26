@@ -26,6 +26,7 @@ synthèse, deux moteurs sont disponibles au choix :
 - [Installation](#installation)
 - [Choisir le moteur de synthèse](#choisir-le-moteur-de-synthèse)
 - [Modèles par type de réunion](#modèles-par-type-de-réunion)
+- [Vocabulaire métier (glossaire)](#vocabulaire-métier-glossaire)
 - [Capturer la bonne sortie audio](#capturer-la-bonne-sortie-audio)
 - [Identifier les locuteurs (optionnel)](#identifier-les-locuteurs-optionnel)
 - [Utilisation — interface graphique](#utilisation--interface-graphique)
@@ -173,6 +174,25 @@ configuration (`%APPDATA%\PMONotes\` sous Windows) :
 
 > ℹ️ Incluez une section dont le titre contient « action » pour que le registre
 > d'actions puisse l'exploiter.
+
+---
+
+## Vocabulaire métier (glossaire)
+
+Les transcriptions automatiques trébuchent souvent sur les **noms propres** et
+**acronymes** d'un projet. Fournissez un **glossaire** et un **contexte** : ils
+améliorent à la fois l'**orthographe de la transcription** (biais de Whisper) et
+la **terminologie de la synthèse**.
+
+- **Termes** : noms propres, acronymes, produits, équipes — séparés par des
+  virgules (ex. `ACME, SIRH, Kubernetes, Phénix`).
+- **Contexte** : une phrase décrivant le projet (ex. « Projet Phénix : migration
+  du système d'information RH ; SIRH = système d'info RH »).
+
+Pilotage :
+- **Interface** : champs **« Termes »** et **« Contexte »** du cadre « Réunion ».
+- **Ligne de commande** : `--glossary "ACME, SIRH" --context "Projet Phénix…"`.
+- **Configuration** : champs `glossary` et `context_note`.
 
 ---
 
@@ -337,6 +357,7 @@ Principaux champs :
 | `whisper_model` | modèle de transcription | `tiny`, `base`, `small`, `medium`, `large-v3` |
 | `whisper_device` | matériel de transcription | `auto`, `cpu`, `cuda` |
 | `language` | langue de la réunion | `fr`, `en`, … |
+| `glossary` / `context_note` | vocabulaire métier (glossaire / contexte) | texte |
 | `ollama_host` / `ollama_model` | serveur et modèle Ollama | ex. `llama3.1` |
 | `claude_model` / `claude_effort` | modèle et effort Claude | ex. `claude-opus-4-8` / `medium` |
 | `diarization` | identifier les locuteurs | `true` / `false` |
@@ -546,6 +567,7 @@ src/pmo_notes/
 ├── action_register.py  Registre d'actions inter-réunions (Excel/CSV)
 ├── prompts.py          Invites de synthèse (structure imposée)
 ├── templates.py        Modèles de synthèse par type de réunion
+├── glossary.py         Vocabulaire métier (glossaire + contexte projet)
 ├── pipeline.py         Orchestration enregistrement → synthèse → export
 ├── export.py           Écriture des synthèses (.md, .docx, .pdf) + transcription
 ├── config.py           Configuration (JSON)

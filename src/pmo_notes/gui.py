@@ -84,6 +84,15 @@ class App:
             values=[name for _key, name in self._templates],
         )
         self.template_combo.grid(row=3, column=1, sticky="ew", padx=6)
+        ttk.Label(meta, text="Termes :").grid(row=4, column=0, sticky="w")
+        self.glossary_var = tk.StringVar()
+        ttk.Entry(meta, textvariable=self.glossary_var).grid(row=4, column=1, sticky="ew", padx=6)
+        ttk.Label(
+            meta, text="(noms propres, acronymes — séparés par des virgules)", foreground="#666"
+        ).grid(row=5, column=1, sticky="w", padx=6)
+        ttk.Label(meta, text="Contexte :").grid(row=6, column=0, sticky="w")
+        self.context_var = tk.StringVar()
+        ttk.Entry(meta, textvariable=self.context_var).grid(row=6, column=1, sticky="ew", padx=6)
 
         # --- Capture audio ---
         audio = ttk.LabelFrame(main, text="Sortie audio à capturer", padding=8)
@@ -271,6 +280,8 @@ class App:
         c = self.config
         self.backend_var.set(c.backend)
         self._select_template(c.synthesis_template)
+        self.glossary_var.set(c.glossary)
+        self.context_var.set(c.context_note)
         self.mic_var.set(c.include_microphone)
         self.ollama_host_var.set(c.ollama_host)
         self.ollama_model_var.set(c.ollama_model)
@@ -293,6 +304,8 @@ class App:
         idx = self.template_combo.current()
         if 0 <= idx < len(self._templates):
             c.synthesis_template = self._templates[idx][0]
+        c.glossary = self.glossary_var.get().strip()
+        c.context_note = self.context_var.get().strip()
         c.include_microphone = bool(self.mic_var.get())
         c.ollama_host = self.ollama_host_var.get().strip() or c.ollama_host
         c.ollama_model = self.ollama_model_var.get().strip() or c.ollama_model

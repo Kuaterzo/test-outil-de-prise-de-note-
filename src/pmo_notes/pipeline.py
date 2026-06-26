@@ -160,8 +160,18 @@ class MeetingPipeline:
         kept_audio_path: Optional[Path] = None,
     ) -> MeetingDraft:
         """Transcrit et synthétise un fichier audio ; renvoie un brouillon à relire."""
+        from .glossary import build_whisper_prompt, parse_terms
+
+        # Glossaire / contexte métier : oriente la transcription et la synthèse.
+        terms = parse_terms(self.config.glossary)
+        context.glossary = terms
+        context.context_note = self.config.context_note
+        initial_prompt = build_whisper_prompt(terms, self.config.context_note)
+
         transcriber = self._get_transcriber()
-        segments = transcriber.transcribe_segments(Path(audio_path), progress)
+        segments = transcriber.transcribe_segments(
+            Path(audio_path), progress, initial_prompt=initial_prompt or None
+        )
         if not segments:
             raise PipelineError(
                 "La transcription est vide : aucune parole n'a été détectée dans "

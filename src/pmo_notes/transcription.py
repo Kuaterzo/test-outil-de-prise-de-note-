@@ -76,9 +76,17 @@ class Transcriber:
             ) from exc
 
     def transcribe_segments(
-        self, audio_path: Path, progress: ProgressCallback = None
+        self,
+        audio_path: Path,
+        progress: ProgressCallback = None,
+        *,
+        initial_prompt: Optional[str] = None,
     ) -> list[TranscriptSegment]:
-        """Transcrit un fichier audio et renvoie les segments horodatés."""
+        """Transcrit un fichier audio et renvoie les segments horodatés.
+
+        `initial_prompt` (glossaire / contexte) oriente la reconnaissance vers
+        la bonne orthographe des noms propres et acronymes.
+        """
         audio_path = Path(audio_path)
         if not audio_path.exists():
             raise TranscriptionError(f"Fichier audio introuvable : {audio_path}")
@@ -93,6 +101,7 @@ class Transcriber:
                 language=self.language,
                 vad_filter=True,  # filtre les silences : transcription plus propre
                 beam_size=5,
+                initial_prompt=initial_prompt or None,
             )
         except Exception as exc:
             raise TranscriptionError(f"Échec de la transcription : {exc}") from exc
@@ -108,9 +117,17 @@ class Transcriber:
                 progress(f"Transcription… {pct} %")
         return result
 
-    def transcribe(self, audio_path: Path, progress: ProgressCallback = None) -> str:
+    def transcribe(
+        self,
+        audio_path: Path,
+        progress: ProgressCallback = None,
+        *,
+        initial_prompt: Optional[str] = None,
+    ) -> str:
         """Transcrit un fichier audio et renvoie le texte complet."""
-        segments = self.transcribe_segments(audio_path, progress)
+        segments = self.transcribe_segments(
+            audio_path, progress, initial_prompt=initial_prompt
+        )
         return join_segments(segments)
 
 

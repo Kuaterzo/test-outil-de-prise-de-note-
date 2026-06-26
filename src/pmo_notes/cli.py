@@ -110,6 +110,10 @@ def cmd_record(args) -> int:
         config.action_register = False
     if args.template:
         config.synthesis_template = args.template
+    if args.glossary is not None:
+        config.glossary = args.glossary
+    if args.context is not None:
+        config.context_note = args.context
 
     recorder = Recorder(
         output_device_id=config.output_device,
@@ -154,6 +158,10 @@ def cmd_process(args) -> int:
         config.action_register = False
     if args.template:
         config.synthesis_template = args.template
+    if args.glossary is not None:
+        config.glossary = args.glossary
+    if args.context is not None:
+        config.context_note = args.context
     pipeline = MeetingPipeline(config)
     context = _context_from_args(args)
     result = _run(
@@ -215,6 +223,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_rec.add_argument("--no-register", action="store_true", help="Ne pas mettre à jour le registre d'actions.")
     p_rec.add_argument("--review", action="store_true", help="Relire/éditer la synthèse (éditeur) avant enregistrement.")
     p_rec.add_argument("--template", help="Modèle de synthèse (voir « pmo-notes templates »).")
+    p_rec.add_argument("--glossary", help="Glossaire : noms propres/acronymes séparés par des virgules.")
+    p_rec.add_argument("--context", help="Note de contexte du projet.")
     p_rec.set_defaults(func=cmd_record)
 
     p_proc = sub.add_parser("process", help="Synthétiser un fichier audio existant.")
@@ -228,6 +238,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_proc.add_argument("--no-register", action="store_true", help="Ne pas mettre à jour le registre d'actions.")
     p_proc.add_argument("--review", action="store_true", help="Relire/éditer la synthèse (éditeur) avant enregistrement.")
     p_proc.add_argument("--template", help="Modèle de synthèse (voir « pmo-notes templates »).")
+    p_proc.add_argument("--glossary", help="Glossaire : noms propres/acronymes séparés par des virgules.")
+    p_proc.add_argument("--context", help="Note de contexte du projet.")
     p_proc.set_defaults(func=cmd_process)
 
     p_tpl = sub.add_parser("templates", help="Lister les modèles de synthèse disponibles.")

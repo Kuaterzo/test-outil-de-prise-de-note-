@@ -41,6 +41,10 @@ class Config:
     whisper_compute_type: str = "auto"    # auto | int8 | int8_float16 | float16 | float32
     language: str = "fr"                  # langue de la réunion (code ISO)
 
+    # --- Vocabulaire métier (glossaire / contexte, optionnel) --------------
+    glossary: str = ""                    # noms propres/acronymes (séparés par des virgules)
+    context_note: str = ""                # contexte libre du projet
+
     # --- Backend local Ollama ----------------------------------------------
     ollama_host: str = "http://localhost:11434"
     ollama_model: str = "llama3.1"

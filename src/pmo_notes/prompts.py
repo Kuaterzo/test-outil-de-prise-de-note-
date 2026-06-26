@@ -26,11 +26,28 @@ class MeetingContext:
     date: str = field(default_factory=lambda: _date.today().isoformat())
     participants: list[str] = field(default_factory=list)
     language: str = "fr"
+    glossary: list[str] = field(default_factory=list)  # noms propres, acronymes…
+    context_note: str = ""                              # contexte libre du projet
 
     def participants_line(self) -> str:
         """Représentation lisible des participants, ou « non précisés »."""
         names = [p.strip() for p in self.participants if p.strip()]
         return ", ".join(names) if names else "non précisés"
+
+    def context_block(self) -> str:
+        """Bloc « glossaire + contexte » à insérer dans l'invite (vide si aucun)."""
+        pieces: list[str] = []
+        terms = [t.strip() for t in self.glossary if t.strip()]
+        if terms:
+            pieces.append(
+                "Glossaire (noms propres et acronymes à orthographier correctement) : "
+                + ", ".join(terms)
+                + "."
+            )
+        note = (self.context_note or "").strip()
+        if note:
+            pieces.append("Contexte du projet : " + note)
+        return "\n".join(pieces)
 
 
 # Persona + consignes de rédaction. Volontairement strict sur la fidélité au
@@ -46,6 +63,9 @@ approximative. Reconstitue le sens sans inventer d'informations absentes.
 Si la transcription comporte des étiquettes de locuteurs (par exemple \
 « Locuteur 1 : … »), exploite-les pour attribuer correctement les propos et les \
 actions aux bonnes personnes, sans inventer de noms.
+
+Si un glossaire ou un contexte de projet est fourni, respecte l'orthographe des \
+noms propres et acronymes indiqués et emploie la terminologie du projet.
 
 Rédige une synthèse professionnelle, claire et concise, en français, au format \
 Markdown, en respectant EXACTEMENT la structure suivante :
@@ -78,10 +98,13 @@ transcription.
 
 def build_synthesis_user_prompt(transcript: str, context: MeetingContext) -> str:
     """Invite utilisateur finale : métadonnées + transcription à synthétiser."""
+    block = context.context_block()
+    context_part = f"{block}\n\n" if block else ""
     return (
         f"Titre de la réunion : {context.title}\n"
         f"Date : {context.date}\n"
         f"Participants : {context.participants_line()}\n\n"
+        f"{context_part}"
         "Voici la transcription de la réunion à synthétiser :\n\n"
         "<transcription>\n"
         f"{transcript.strip()}\n"
@@ -116,10 +139,13 @@ def build_chunk_user_prompt(chunk: str, index: int, total: int) -> str:
 
 def build_reduce_user_prompt(notes: str, context: MeetingContext) -> str:
     """Invite finale à partir des notes de toutes les tranches (étape « reduce »)."""
+    block = context.context_block()
+    context_part = f"{block}\n\n" if block else ""
     return (
         f"Titre de la réunion : {context.title}\n"
         f"Date : {context.date}\n"
         f"Participants : {context.participants_line()}\n\n"
+        f"{context_part}"
         "Voici les notes prises sur les différentes portions de la réunion, dans "
         "l'ordre chronologique. Rédige la synthèse finale en respectant la "
         "structure imposée.\n\n"

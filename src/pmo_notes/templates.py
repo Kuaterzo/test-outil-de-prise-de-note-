@@ -31,6 +31,9 @@ Si la transcription comporte des étiquettes de locuteurs (« Locuteur 1 : … �
 des noms), exploite-les pour attribuer correctement les propos et les actions \
 aux bonnes personnes, sans inventer de noms.
 
+Si un glossaire ou un contexte de projet est fourni, respecte l'orthographe des \
+noms propres et acronymes indiqués et emploie la terminologie du projet.
+
 Rédige une synthèse professionnelle, claire et concise, en français, au format \
 Markdown, en respectant EXACTEMENT la structure de sections suivante :"""
 
