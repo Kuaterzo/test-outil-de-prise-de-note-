@@ -181,9 +181,26 @@ class App:
         )
         ttk.Checkbutton(export, text="PDF (.pdf)", variable=self.pdf_var).pack(side="left")
 
+        # --- Envoi par e-mail ---
+        mail = ttk.LabelFrame(main, text="Envoi par e-mail (optionnel)", padding=8)
+        mail.grid(row=5, column=0, sticky="ew", **pad)
+        mail.columnconfigure(1, weight=1)
+        self.email_enabled_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            mail, text="Envoyer la synthèse par e-mail", variable=self.email_enabled_var
+        ).grid(row=0, column=0, columnspan=2, sticky="w")
+        ttk.Label(mail, text="Destinataires :").grid(row=1, column=0, sticky="w")
+        self.email_to_var = tk.StringVar()
+        ttk.Entry(mail, textvariable=self.email_to_var).grid(row=1, column=1, sticky="ew", padx=6)
+        ttk.Label(
+            mail,
+            text="(séparés par des virgules ; serveur SMTP à configurer dans config.json)",
+            foreground="#666",
+        ).grid(row=2, column=1, sticky="w", padx=6)
+
         # --- Contrôles ---
         controls = ttk.Frame(main)
-        controls.grid(row=5, column=0, sticky="ew", **pad)
+        controls.grid(row=6, column=0, sticky="ew", **pad)
         self.start_btn = ttk.Button(controls, text="● Démarrer", command=self.start_recording)
         self.start_btn.pack(side="left")
         self.stop_btn = ttk.Button(
@@ -204,12 +221,12 @@ class App:
         # --- Statut ---
         self.status_var = tk.StringVar(value="Prêt.")
         self.status_label = ttk.Label(main, textvariable=self.status_var, foreground="#0a6")
-        self.status_label.grid(row=6, column=0, sticky="w", **pad)
+        self.status_label.grid(row=7, column=0, sticky="w", **pad)
 
         # --- Synthèse ---
         out = ttk.LabelFrame(main, text="Synthèse", padding=8)
-        out.grid(row=7, column=0, sticky="nsew", **pad)
-        main.rowconfigure(7, weight=1)
+        out.grid(row=8, column=0, sticky="nsew", **pad)
+        main.rowconfigure(8, weight=1)
         out.columnconfigure(0, weight=1)
         out.rowconfigure(0, weight=1)
         self.output = ScrolledText(out, wrap="word", height=14, font=("TkDefaultFont", 10))
@@ -240,6 +257,8 @@ class App:
         self.names_var.set(c.infer_speaker_names)
         self.docx_var.set(c.export_docx)
         self.pdf_var.set(c.export_pdf)
+        self.email_enabled_var.set(c.email_enabled)
+        self.email_to_var.set(c.email_to)
         self._on_backend_change()
 
     def _collect_config(self) -> None:
@@ -255,6 +274,8 @@ class App:
         c.infer_speaker_names = bool(self.names_var.get())
         c.export_docx = bool(self.docx_var.get())
         c.export_pdf = bool(self.pdf_var.get())
+        c.email_enabled = bool(self.email_enabled_var.get())
+        c.email_to = self.email_to_var.get().strip()
         device = self._selected_device()
         c.output_device = device.id if device else c.output_device
         try:
@@ -433,7 +454,8 @@ class App:
         files = ", ".join(p.name for p in result.all_paths())
         self.saved_var.set(f"Fichiers enregistrés : {files}")
         self.open_btn["state"] = "normal"
-        self.set_status("Synthèse terminée. ✔")
+        done = "Synthèse terminée et envoyée par e-mail. ✔" if result.email_sent else "Synthèse terminée. ✔"
+        self.set_status(done)
         self._busy = False
         self._reset_idle()
 

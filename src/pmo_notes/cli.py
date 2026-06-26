@@ -63,6 +63,8 @@ def cmd_record(args) -> int:
         config.export_docx = True
     if args.pdf:
         config.export_pdf = True
+    if args.email:
+        config.email_enabled = True
 
     recorder = Recorder(
         output_device_id=config.output_device,
@@ -98,6 +100,8 @@ def cmd_process(args) -> int:
         config.export_docx = True
     if args.pdf:
         config.export_pdf = True
+    if args.email:
+        config.email_enabled = True
     pipeline = MeetingPipeline(config)
     result = pipeline.process_audio_file(
         Path(args.file), _context_from_args(args), _progress
@@ -126,6 +130,8 @@ def _print_result(result) -> None:
         print(f"Transcription        : {result.transcript_path}", file=sys.stderr)
     if result.audio_path:
         print(f"Audio                : {result.audio_path}", file=sys.stderr)
+    if result.email_sent:
+        print("E-mail               : envoyé", file=sys.stderr)
 
 
 # ------------------------------------------------------------------ parseur
@@ -148,6 +154,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_rec.add_argument("--backend", choices=["ollama", "claude"], help="Forcer le moteur de synthèse.")
     p_rec.add_argument("--docx", action="store_true", help="Exporter aussi en Word (.docx).")
     p_rec.add_argument("--pdf", action="store_true", help="Exporter aussi en PDF.")
+    p_rec.add_argument("--email", action="store_true", help="Envoyer la synthèse par e-mail.")
     p_rec.set_defaults(func=cmd_record)
 
     p_proc = sub.add_parser("process", help="Synthétiser un fichier audio existant.")
@@ -157,6 +164,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_proc.add_argument("--backend", choices=["ollama", "claude"], help="Forcer le moteur de synthèse.")
     p_proc.add_argument("--docx", action="store_true", help="Exporter aussi en Word (.docx).")
     p_proc.add_argument("--pdf", action="store_true", help="Exporter aussi en PDF.")
+    p_proc.add_argument("--email", action="store_true", help="Envoyer la synthèse par e-mail.")
     p_proc.set_defaults(func=cmd_process)
 
     p_gui = sub.add_parser("gui", help="Lancer l'interface graphique.")

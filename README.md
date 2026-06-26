@@ -31,6 +31,7 @@ synthèse, deux moteurs sont disponibles au choix :
 - [Utilisation — ligne de commande](#utilisation--ligne-de-commande)
 - [Configuration](#configuration)
 - [Où sont enregistrées les synthèses](#où-sont-enregistrées-les-synthèses)
+- [Envoi par e-mail (optionnel)](#envoi-par-e-mail-optionnel)
 - [Performances et modèles Whisper](#performances-et-modèles-whisper)
 - [Créer un exécutable Windows](#créer-un-exécutable-windows)
 - [Confidentialité](#confidentialité)
@@ -231,6 +232,9 @@ pmo-notes process reunion.m4a --title "Atelier cadrage"
 # Exporter aussi la synthèse en Word et PDF
 pmo-notes process reunion.wav --docx --pdf
 
+# Envoyer la synthèse par e-mail (serveur SMTP configuré dans config.json)
+pmo-notes process reunion.wav --email
+
 # Forcer un moteur ponctuellement
 pmo-notes process reunion.wav --backend claude
 ```
@@ -265,6 +269,11 @@ Principaux champs :
 | `output_dir` | dossier de sortie | chemin |
 | `save_transcript` / `keep_audio` | conserver `.txt` / `.wav` | `true` / `false` |
 | `export_docx` / `export_pdf` | générer aussi `.docx` / `.pdf` | `true` / `false` |
+| `email_enabled` | envoyer la synthèse par e-mail | `true` / `false` |
+| `email_to` / `email_from` | destinataires / expéditeur | adresses e-mail |
+| `smtp_host` / `smtp_port` | serveur SMTP | ex. `smtp.exemple.fr` / `587` |
+| `smtp_user` / `smtp_password` | identifiants SMTP | mot de passe : préférez `PMO_SMTP_PASSWORD` |
+| `smtp_use_tls` | STARTTLS | `true` / `false` |
 
 ---
 
@@ -290,6 +299,42 @@ ajoutez `--docx` / `--pdf`). Ces documents reprennent la même structure (titres
 de sections, puces, responsables en gras). *(Aucun logiciel bureautique n'est
 requis : la génération utilise `python-docx` et `reportlab`, installés avec les
 dépendances.)*
+
+---
+
+## Envoi par e-mail (optionnel)
+
+L'outil peut **envoyer automatiquement la synthèse par e-mail**, avec les
+documents en pièces jointes, dès qu'elle est produite.
+
+1. Configurez le serveur SMTP dans `config.json` :
+   ```json
+   {
+     "email_enabled": true,
+     "email_to": "destinataire@exemple.fr, autre@exemple.fr",
+     "email_from": "moi@exemple.fr",
+     "smtp_host": "smtp.exemple.fr",
+     "smtp_port": 587,
+     "smtp_user": "moi@exemple.fr",
+     "smtp_use_tls": true
+   }
+   ```
+2. Fournissez le **mot de passe** via une variable d'environnement (recommandé) :
+   ```powershell
+   setx PMO_SMTP_PASSWORD "votre_mot_de_passe"
+   ```
+   (ou via le champ `smtp_password` de la configuration).
+3. Dans l'interface, cochez **« Envoyer la synthèse par e-mail »** et renseignez
+   les destinataires. En ligne de commande, ajoutez **`--email`**.
+
+- Port **587** → STARTTLS (par défaut) ; port **465** → SSL implicite.
+- Pièces jointes : la synthèse Markdown et, s'ils sont générés, les documents
+  `.docx` / `.pdf`.
+- L'envoi **dégrade gracieusement** : un échec est signalé dans la barre de
+  statut, mais la synthèse reste enregistrée localement.
+
+> 🔐 Pour Gmail ou Microsoft 365 avec double authentification, créez un **mot de
+> passe d'application** dédié plutôt que d'utiliser votre mot de passe principal.
 
 ---
 
@@ -350,6 +395,8 @@ Détails et bonnes pratiques :
 - Avec le moteur **API Claude**, **la transcription textuelle** est envoyée à
   l'API Anthropic pour produire la synthèse. À choisir en connaissance de cause
   selon la sensibilité des réunions.
+- Si l'**envoi par e-mail** est activé, la synthèse et ses pièces jointes
+  transitent par le serveur SMTP que vous configurez.
 - Pensez à informer les participants et à respecter les règles internes et
   légales applicables à l'enregistrement des réunions.
 
@@ -395,6 +442,7 @@ src/pmo_notes/
 │   ├── base.py         Logique commune (map-reduce des longues réunions)
 │   ├── ollama.py       Backend local Ollama
 │   └── claude.py       Backend API Claude (Anthropic)
+├── email_sender.py     Envoi de la synthèse par e-mail (SMTP, optionnel)
 ├── prompts.py          Invites de synthèse (structure imposée)
 ├── pipeline.py         Orchestration enregistrement → synthèse → export
 ├── export.py           Écriture des synthèses (.md, .docx, .pdf) + transcription

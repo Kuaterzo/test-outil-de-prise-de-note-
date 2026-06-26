@@ -67,6 +67,16 @@ class Config:
     export_docx: bool = False             # générer aussi une synthèse Word (.docx)
     export_pdf: bool = False              # générer aussi une synthèse PDF
 
+    # --- Envoi par e-mail (optionnel, SMTP) --------------------------------
+    email_enabled: bool = False
+    email_to: str = ""                    # destinataires, séparés par des virgules
+    email_from: str = ""                  # adresse d'expéditeur (sinon smtp_user)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: Optional[str] = None   # de préférence via PMO_SMTP_PASSWORD
+    smtp_use_tls: bool = True             # STARTTLS (SSL implicite si port 465)
+
     # ------------------------------------------------------------------ I/O
     @staticmethod
     def default_path() -> Path:

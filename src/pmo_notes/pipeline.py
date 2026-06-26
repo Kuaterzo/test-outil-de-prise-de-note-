@@ -44,6 +44,7 @@ class MeetingResult:
     audio_path: Optional[Path] = None
     docx_path: Optional[Path] = None
     pdf_path: Optional[Path] = None
+    email_sent: bool = False
 
     def all_paths(self) -> list[Path]:
         """Tous les fichiers produits, dans l'ordre de lecture le plus utile."""
@@ -157,7 +158,7 @@ class MeetingPipeline:
                 "PDF", progress,
             )
 
-        return MeetingResult(
+        result = MeetingResult(
             transcript=transcript,
             synthesis=synthesis,
             synthesis_path=paths["synthesis"],
@@ -166,6 +167,37 @@ class MeetingPipeline:
             docx_path=docx_path,
             pdf_path=pdf_path,
         )
+
+        if self.config.email_enabled:
+            self._send_email(result, context, progress)
+        return result
+
+    def _send_email(self, result: "MeetingResult", context, progress: ProgressCallback) -> None:
+        """Envoie la synthèse par e-mail (pièces jointes md/docx/pdf).
+
+        N'interrompt jamais le traitement : un échec d'envoi est signalé mais la
+        synthèse reste produite et enregistrée localement.
+        """
+        try:
+            from .email_sender import send_synthesis_email
+
+            if progress:
+                progress("Envoi de la synthèse par e-mail…")
+            attachments = [
+                p for p in (result.synthesis_path, result.docx_path, result.pdf_path) if p
+            ]
+            recipients = send_synthesis_email(
+                self.config,
+                subject=f"Synthèse de réunion — {context.title}",
+                body=result.synthesis,
+                attachments=attachments,
+            )
+            result.email_sent = True
+            if progress:
+                progress(f"E-mail envoyé à {', '.join(recipients)}.")
+        except Exception as exc:  # repli gracieux
+            if progress:
+                progress(f"Envoi e-mail échoué ({exc}).")
 
     @staticmethod
     def _export_document(renderer, synthesis, path, title, label, progress):
