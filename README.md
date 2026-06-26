@@ -32,6 +32,7 @@ synthèse, deux moteurs sont disponibles au choix :
 - [Configuration](#configuration)
 - [Où sont enregistrées les synthèses](#où-sont-enregistrées-les-synthèses)
 - [Performances et modèles Whisper](#performances-et-modèles-whisper)
+- [Créer un exécutable Windows](#créer-un-exécutable-windows)
 - [Confidentialité](#confidentialité)
 - [Limitations connues](#limitations-connues)
 - [Dépannage](#dépannage)
@@ -307,6 +308,39 @@ dépendances.)*
 
 ---
 
+## Créer un exécutable Windows
+
+Pour distribuer l'outil à des utilisateurs **sans installer Python**, vous pouvez
+générer un exécutable autonome avec [PyInstaller](https://pyinstaller.org/). La
+recette est fournie dans le dossier [`packaging/`](packaging/).
+
+Depuis une invite de commandes Windows, à la racine du projet :
+
+```bat
+packaging\build_windows.bat
+```
+
+Le script crée un environnement isolé, installe les dépendances + PyInstaller et
+produit l'application dans **`dist\PMONotes\PMONotes.exe`** (mode « onedir » :
+un dossier autonome à copier tel quel).
+
+Détails et bonnes pratiques :
+
+- Le **modèle Whisper n'est pas embarqué** : il se télécharge au premier
+  lancement (connexion requise une fois), puis est mis en cache.
+- Pour inclure la **diarisation**, dé-commentez la ligne `pyannote.audio` dans
+  `build_windows.bat` avant de lancer la construction.
+- L'antivirus ou SmartScreen peut signaler un exécutable PyInstaller non signé :
+  c'est courant. Pour une diffusion large, envisagez une **signature de code**.
+- En cas d'erreur « *ModuleNotFoundError* » au lancement de l'`.exe`, ajoutez le
+  module manquant à `hiddenimports` dans `packaging/pmo-notes.spec`, puis
+  reconstruisez.
+
+> ℹ️ La construction doit être réalisée **sur une machine Windows** (l'exécutable
+> est spécifique à la plateforme).
+
+---
+
 ## Confidentialité
 
 - La **capture** et la **transcription** se font **localement** : l'audio ne
@@ -368,6 +402,7 @@ src/pmo_notes/
 ├── gui.py              Interface graphique (Tkinter)
 └── cli.py              Interface en ligne de commande
 tests/                  Tests unitaires (pytest)
+packaging/              Recette PyInstaller (exécutable Windows)
 run_gui.py              Lanceur de l'interface sans installation
 ```
 
