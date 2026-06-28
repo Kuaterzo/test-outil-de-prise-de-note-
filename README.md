@@ -632,4 +632,4 @@ pytest
 
 ## Licence
 
-MIT.
+MIT — voir le fichier [LICENSE](LICENSE).

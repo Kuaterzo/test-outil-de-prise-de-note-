@@ -51,7 +51,7 @@ class MeetingResult:
     audio_path: Optional[Path] = None
     docx_path: Optional[Path] = None
     pdf_path: Optional[Path] = None
-    register_paths: list = field(default_factory=list)
+    register_paths: list[Path] = field(default_factory=list)
     email_sent: bool = False
 
     def all_paths(self) -> list[Path]:
