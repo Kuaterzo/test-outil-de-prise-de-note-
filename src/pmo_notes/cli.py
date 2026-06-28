@@ -92,6 +92,49 @@ def cmd_templates(args) -> int:
     return 0
 
 
+def cmd_digest(args) -> int:
+    from datetime import date
+
+    from .digest import collect_syntheses, make_digest
+    from .summarization import get_summarizer
+
+    config = Config.load()
+    if args.backend:
+        config.backend = args.backend
+
+    out_dir = config.resolved_output_dir()
+    docs = collect_syntheses(out_dir, since=args.since, until=args.until)
+    if not docs:
+        print(f"Aucune synthèse trouvée dans {out_dir}.", file=sys.stderr)
+        return 1
+
+    summarizer = get_summarizer(config)
+    print(
+        f"{len(docs)} synthèse(s) — génération du digest via {summarizer.name}…",
+        file=sys.stderr,
+    )
+    digest = make_digest(summarizer, docs, args.title)
+
+    base = f"digest_{date.today().isoformat()}"
+    path = out_dir / f"{base}.md"
+    path.write_text(digest + "\n", encoding="utf-8")
+
+    print("\n" + "=" * 70)
+    print(digest)
+    print("=" * 70)
+    print(f"\nDigest enregistré : {path}", file=sys.stderr)
+
+    if args.docx:
+        from .export import render_docx
+
+        print(f"Document Word     : {render_docx(digest, out_dir / f'{base}.docx', args.title)}", file=sys.stderr)
+    if args.pdf:
+        from .export import render_pdf
+
+        print(f"Document PDF      : {render_pdf(digest, out_dir / f'{base}.pdf', args.title)}", file=sys.stderr)
+    return 0
+
+
 def cmd_record(args) -> int:
     from .audio import Recorder
 
@@ -244,6 +287,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_tpl = sub.add_parser("templates", help="Lister les modèles de synthèse disponibles.")
     p_tpl.set_defaults(func=cmd_templates)
+
+    p_dig = sub.add_parser("digest", help="Consolider les synthèses en un rapport de projet.")
+    p_dig.add_argument("--title", default="Projet", help="Nom du projet.")
+    p_dig.add_argument("--since", help="Date de début (AAAA-MM-JJ).")
+    p_dig.add_argument("--until", help="Date de fin (AAAA-MM-JJ).")
+    p_dig.add_argument("--backend", choices=["ollama", "claude"], help="Forcer le moteur de synthèse.")
+    p_dig.add_argument("--docx", action="store_true", help="Exporter aussi en Word (.docx).")
+    p_dig.add_argument("--pdf", action="store_true", help="Exporter aussi en PDF.")
+    p_dig.set_defaults(func=cmd_digest)
 
     p_gui = sub.add_parser("gui", help="Lancer l'interface graphique.")
     p_gui.set_defaults(func=cmd_gui)

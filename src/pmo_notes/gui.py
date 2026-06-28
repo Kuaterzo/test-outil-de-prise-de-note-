@@ -234,6 +234,10 @@ class App:
             controls, text="Charger un fichier audio…", command=self.load_audio_file
         )
         self.file_btn.pack(side="left", padx=6)
+        self.digest_btn = ttk.Button(
+            controls, text="🗂 Digest de projet", command=self.generate_digest
+        )
+        self.digest_btn.pack(side="left", padx=6)
         self.review_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(
             controls, text="Relire avant d'enregistrer", variable=self.review_var
@@ -458,6 +462,46 @@ class App:
         self._collect_config()
         self._start_processing(audio_path=Path(path))
 
+    # --------------------------------------------------------------- digest
+    def generate_digest(self) -> None:
+        """Consolide les synthèses du dossier de sortie en un rapport de projet."""
+        if self._busy:
+            return
+        self._collect_config()
+        self._busy = True
+        self._draft = None
+        self.validate_btn["state"] = "disabled"
+        self.open_btn["state"] = "disabled"
+        self.saved_var.set("")
+        self._set_controls_enabled(False)
+        self.output.delete("1.0", "end")
+        self.set_status("Génération du digest de projet…")
+        threading.Thread(target=self._digest_worker, daemon=True).start()
+
+    def _digest_worker(self) -> None:
+        from datetime import date as _date
+
+        def progress(msg: str) -> None:
+            self._messages.put(("status", msg))
+
+        try:
+            from .digest import collect_syntheses, make_digest
+            from .summarization import get_summarizer
+
+            out_dir = self.config.resolved_output_dir()
+            docs = collect_syntheses(out_dir)
+            if not docs:
+                self._messages.put(("error", f"Aucune synthèse trouvée dans {out_dir}."))
+                return
+            summarizer = get_summarizer(self.config)
+            progress(f"{len(docs)} synthèse(s) — génération du digest via {summarizer.name}…")
+            digest = make_digest(summarizer, docs, "Projet")
+            path = out_dir / f"digest_{_date.today().isoformat()}.md"
+            path.write_text(digest + "\n", encoding="utf-8")
+            self._messages.put(("digest", (digest, path)))
+        except Exception as exc:
+            self._messages.put(("error", str(exc)))
+
     # --------------------------------------------------------------- processing
     def _start_processing(self, *, audio=None, samplerate=None, audio_path=None) -> None:
         self._busy = True
@@ -520,6 +564,8 @@ class App:
                     self.set_status(str(payload))
                 elif kind == "draft":
                     self._on_draft(payload)
+                elif kind == "digest":
+                    self._on_digest(payload)
                 elif kind == "result":
                     self._on_result(payload)
                 elif kind == "error":
@@ -553,6 +599,16 @@ class App:
             target=self._finalize_worker, args=(self._draft, edited), daemon=True
         )
         worker.start()
+
+    def _on_digest(self, payload) -> None:
+        digest, path = payload
+        self.output.delete("1.0", "end")
+        self.output.insert("1.0", digest)
+        self.saved_var.set(f"Digest enregistré : {path.name}")
+        self.open_btn["state"] = "normal"
+        self.set_status("Digest de projet généré. ✔")
+        self._busy = False
+        self._reset_idle()
 
     def _on_result(self, result) -> None:
         self.output.delete("1.0", "end")
@@ -589,6 +645,7 @@ class App:
         state = "normal" if enabled else "disabled"
         self.start_btn["state"] = state
         self.file_btn["state"] = state
+        self.digest_btn["state"] = state
 
     def _reset_idle(self) -> None:
         self.timer_var.set("00:00")

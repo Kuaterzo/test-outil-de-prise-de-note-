@@ -36,6 +36,7 @@ synthèse, deux moteurs sont disponibles au choix :
 - [Configuration](#configuration)
 - [Où sont enregistrées les synthèses](#où-sont-enregistrées-les-synthèses)
 - [Registre d'actions](#registre-dactions)
+- [Digest / rapport de projet](#digest--rapport-de-projet)
 - [Envoi par e-mail (optionnel)](#envoi-par-e-mail-optionnel)
 - [Performances et modèles Whisper](#performances-et-modèles-whisper)
 - [Créer un exécutable Windows](#créer-un-exécutable-windows)
@@ -56,6 +57,7 @@ synthèse, deux moteurs sont disponibles au choix :
 - ✏️ **Relecture/édition** de la synthèse [avant diffusion](#relecture-avant-diffusion)
 - 📄 **Exports** Markdown, **Word (.docx)** et **PDF**
 - 📊 **Registre d'actions** cumulatif (Excel/CSV) pour [suivre les actions](#registre-dactions) dans le temps
+- 🗂 **Digest de projet** : [consolidation](#digest--rapport-de-projet) de plusieurs synthèses en un rapport transversal
 - ✉️ **Envoi par e-mail** automatique (SMTP)
 - 🖥️ **Interface graphique** et **ligne de commande**, plus un [exécutable Windows](#créer-un-exécutable-windows)
 - 🔒 **Local par défaut** : capture et transcription ne quittent pas la machine
@@ -440,6 +442,29 @@ ligne de commande) pour le désactiver.
 
 ---
 
+## Digest / rapport de projet
+
+Au niveau **projet** (et non plus réunion isolée), l'outil peut **consolider
+plusieurs synthèses** en un rapport transversal — un livrable PMO classique
+(point projet hebdomadaire).
+
+Le rapport reprend : **Vue d'ensemble · Avancement et décisions clés · Actions en
+cours et à venir · Risques et points d'attention · Prochaines étapes**.
+
+- **Interface** : bouton **« 🗂 Digest de projet »** — consolide toutes les
+  synthèses du dossier de sortie, puis affiche et enregistre le rapport.
+- **Ligne de commande** :
+  ```bash
+  pmo-notes digest --title "Projet Phénix"
+  pmo-notes digest --since 2026-06-01 --until 2026-06-30 --docx --pdf
+  ```
+
+Le rapport est enregistré sous `digest_AAAA-MM-JJ.md` (et `.docx` / `.pdf` à la
+demande). Il s'appuie **uniquement** sur les synthèses existantes et n'est pas
+réintégré dans les digests suivants.
+
+---
+
 ## Envoi par e-mail (optionnel)
 
 L'outil peut **envoyer automatiquement la synthèse par e-mail**, avec les
@@ -582,6 +607,7 @@ src/pmo_notes/
 │   └── claude.py       Backend API Claude (Anthropic)
 ├── email_sender.py     Envoi de la synthèse par e-mail (SMTP, optionnel)
 ├── action_register.py  Registre d'actions inter-réunions (Excel/CSV)
+├── digest.py           Digest / rapport de projet consolidé
 ├── prompts.py          Invites de synthèse (structure imposée)
 ├── templates.py        Modèles de synthèse par type de réunion
 ├── glossary.py         Vocabulaire métier (glossaire + contexte projet)
