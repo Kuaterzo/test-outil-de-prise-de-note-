@@ -56,7 +56,7 @@ synthèse, deux moteurs sont disponibles au choix :
 - 📋 **Modèles par type de réunion** (COPIL, atelier, rétrospective, daily…)
 - ✏️ **Relecture/édition** de la synthèse [avant diffusion](#relecture-avant-diffusion)
 - 📄 **Exports** Markdown, **Word (.docx)** et **PDF**
-- 📊 **Registre d'actions** cumulatif (Excel/CSV) pour [suivre les actions](#registre-dactions) dans le temps
+- 📊 **Registre d'actions** cumulatif (Excel/CSV) avec **vue interactive** (filtrer, marquer « fait ») pour [suivre les actions](#registre-dactions)
 - 🗂 **Digest de projet** : [consolidation](#digest--rapport-de-projet) de plusieurs synthèses en un rapport transversal
 - ✉️ **Envoi par e-mail** automatique (SMTP)
 - 🖥️ **Interface graphique** et **ligne de commande**, plus un [exécutable Windows](#créer-un-exécutable-windows)
@@ -433,8 +433,15 @@ Deux fichiers sont maintenus dans le dossier de sortie :
 - `registre_actions.csv` — équivalent CSV (séparateur `;`, ouvrable dans Excel).
 
 Colonnes : **Date · Réunion · Responsable · Action · Échéance · Statut · Source**.
-Le statut est initialisé à « À faire » ; vous pouvez l'actualiser librement dans
-le fichier — les nouvelles actions sont simplement ajoutées à la suite.
+Le statut est initialisé à « À faire » ; vous pouvez l'actualiser librement.
+
+### Vue interactive
+
+Sans quitter l'application, le bouton **« 📋 Registre d'actions »** (en bas de la
+fenêtre) ouvre le registre dans un **tableau** : **filtrer** par responsable ou
+par statut, **changer le statut** des actions sélectionnées (« Fait », « En
+cours », …) et **enregistrer** les modifications (CSV + Excel). Idéal pour faire
+le point sur les actions ouvertes sans ouvrir un tableur.
 
 Activé par défaut. Décochez **« Registre d'actions »** dans l'interface (ou mettez
 `action_register: false` dans la configuration, ou ajoutez `--no-register` en
@@ -607,6 +614,7 @@ src/pmo_notes/
 │   └── claude.py       Backend API Claude (Anthropic)
 ├── email_sender.py     Envoi de la synthèse par e-mail (SMTP, optionnel)
 ├── action_register.py  Registre d'actions inter-réunions (Excel/CSV)
+├── register_view.py    Vue interactive du registre (filtrer, changer le statut)
 ├── digest.py           Digest / rapport de projet consolidé
 ├── prompts.py          Invites de synthèse (structure imposée)
 ├── templates.py        Modèles de synthèse par type de réunion

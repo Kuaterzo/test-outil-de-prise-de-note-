@@ -1,11 +1,24 @@
 import pytest
 
 from pmo_notes.action_register import (
+    ActionItem,
     append_to_csv,
     append_to_xlsx,
     extract_actions,
+    filter_items,
+    read_csv,
+    read_register,
     update_register,
+    write_csv,
+    write_register,
 )
+
+
+def _items():
+    return [
+        ActionItem("2026-06-26", "COPIL", "Alice", "Préparer le plan", "lundi", "À faire", "s.md"),
+        ActionItem("2026-06-26", "COPIL", "Bob", "Valider le budget", "", "Fait", "s.md"),
+    ]
 
 SAMPLE = (
     "## Introduction\n"
@@ -64,6 +77,48 @@ def test_update_register_returns_paths(tmp_path):
 
 def test_update_register_empty_returns_nothing(tmp_path):
     assert update_register(tmp_path, []) == []
+
+
+def test_csv_write_read_roundtrip(tmp_path):
+    path = tmp_path / "registre_actions.csv"
+    write_csv(path, _items())
+    back = read_csv(path)
+    assert [(i.responsable, i.action, i.statut) for i in back] == [
+        ("Alice", "Préparer le plan", "À faire"),
+        ("Bob", "Valider le budget", "Fait"),
+    ]
+
+
+def test_append_keeps_single_bom(tmp_path):
+    path = tmp_path / "registre_actions.csv"
+    append_to_csv(path, _items())
+    append_to_csv(path, _items())  # 2e append : pas de BOM au milieu du fichier
+    assert path.read_bytes().count(b"\xef\xbb\xbf") == 1
+    assert len(read_csv(path)) == 4
+
+
+def test_read_csv_missing_returns_empty(tmp_path):
+    assert read_csv(tmp_path / "absent.csv") == []
+
+
+def test_filter_items():
+    items = _items()
+    assert [i.responsable for i in filter_items(items, responsable="Alice")] == ["Alice"]
+    assert [i.responsable for i in filter_items(items, statut="Fait")] == ["Bob"]
+    assert filter_items(items, responsable="Alice", statut="Fait") == []
+    assert len(filter_items(items)) == 2
+
+
+def test_register_write_then_read_reflects_status_change(tmp_path):
+    items = _items()
+    write_register(tmp_path, items)
+    # Modifie un statut puis réécrit.
+    back = read_register(tmp_path)
+    back[0].statut = "En cours"
+    write_register(tmp_path, back)
+    reread = read_register(tmp_path)
+    assert reread[0].statut == "En cours"
+    assert (tmp_path / "registre_actions.csv").exists()
 
 
 def test_append_to_xlsx_appends_rows(tmp_path):

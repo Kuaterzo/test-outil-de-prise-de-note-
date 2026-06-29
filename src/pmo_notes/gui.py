@@ -274,6 +274,10 @@ class App:
             command=self.open_output_dir, state="disabled",
         )
         self.open_btn.pack(side="left")
+        self.register_view_btn = ttk.Button(
+            bottom, text="📋 Registre d'actions", command=self.open_register_view
+        )
+        self.register_view_btn.pack(side="left", padx=(8, 0))
         self.saved_var = tk.StringVar()
         ttk.Label(bottom, textvariable=self.saved_var, foreground="#666").pack(
             side="left", padx=10
@@ -657,6 +661,13 @@ class App:
     def set_status(self, message: str, *, error: bool = False) -> None:
         self.status_var.set(message)
         self.status_label.configure(foreground="#c00" if error else "#0a6")
+
+    def open_register_view(self) -> None:
+        """Ouvre la fenêtre de consultation/mise à jour du registre d'actions."""
+        self._collect_config()
+        from . import register_view
+
+        register_view.open_register(self.root, self.config)
 
     def open_output_dir(self) -> None:
         path = self.config.resolved_output_dir()
